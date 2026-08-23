@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { saveToken } from '../session'
+import { lastSessionEnd, saveToken, storageKind } from '../session'
 import axios from 'axios'
 import { Loader2, Lock, Mail } from 'lucide-react'
 import { typo } from '../typography'
@@ -20,6 +20,19 @@ function LoginPage({ onLoggedIn }: Props) {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /*
+   * Почему пришлось спрашивать вход.
+   *
+   * Снаружи «вход не сохранился» и «сервер не принял сохранённый вход»
+   * выглядят одинаково, а чинить их надо в разных местах. Строка короткая и
+   * спокойная — это не ошибка, а объяснение.
+   */
+  const [reason] = useState(() => {
+    const last = lastSessionEnd()
+    if (last === 'сервер-отклонил') return `Прошлый вход больше не действует · ${storageKind()}`
+    if (last === 'нет-сохранённого') return `Сохранённого входа не нашлось · ${storageKind()}`
+    return null
+  })
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,6 +85,7 @@ function LoginPage({ onLoggedIn }: Props) {
         </label>
 
         {error && <div className="login-error">{error}</div>}
+        {!error && reason && <div className="login-why">{reason}</div>}
 
         <button type="submit" className="login-submit" disabled={busy || !email.trim() || !password}>
           {busy ? <Loader2 size={18} className="spin" /> : 'Войти'}

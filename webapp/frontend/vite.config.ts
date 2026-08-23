@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite'
+import pkg from './package.json'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
+  // Версия из package.json попадает прямо в код — см. src/version.ts.
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [react()],
   resolve: {
     alias: {

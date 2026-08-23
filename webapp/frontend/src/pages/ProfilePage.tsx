@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { loadToken, saveToken } from '../session'
+import { APP_VERSION } from '../version'
+import { loadToken, noteSessionEnd, saveToken, storageKind } from '../session'
 import axios from 'axios'
 import {
   ChevronRight, Heart, Headphones, KeyRound, LogOut,
@@ -153,7 +154,10 @@ function ProfilePage({ token, onOpenPlaylist, onOpenAccount, onOpenEqualizer, on
       label: 'Выйти из аккаунта',
       icon: LogOut,
       color: 'gray',
-      onClick: onLogout,
+      onClick: () => {
+        noteSessionEnd('вышел-сам')
+        onLogout()
+      },
       confirm: 'Точно выйти?',
     })
   }
@@ -205,6 +209,13 @@ function ProfilePage({ token, onOpenPlaylist, onOpenAccount, onOpenEqualizer, on
           </div>
         </section>
       ))}
+
+      {/* Версия и место хранения входа. Без них нельзя ответить на простой
+          вопрос «а какая сборка у тебя стоит» — а он всплывает первым, как
+          только что-то ведёт себя не так. */}
+      <p className="profile-build">
+        {APP_VERSION} · {storageKind()}
+      </p>
     </div>
   )
 }

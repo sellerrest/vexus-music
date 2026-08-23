@@ -16,6 +16,39 @@ import { Preferences } from '@capacitor/preferences'
  */
 
 const KEY = 'auth_token'
+const WHY = 'auth_last_end'
+
+/**
+ * Почему вход потребовался снова.
+ *
+ * Причин ровно три, и снаружи они выглядят одинаково — экраном входа. Разница
+ * между «сохранённого входа не нашлось» и «сохранённый вход был, но сервер его
+ * не принял» решает, где искать неисправность, поэтому она и записывается.
+ */
+export type SessionEnd = 'нет-сохранённого' | 'сервер-отклонил' | 'вышел-сам'
+
+/** Где на этом устройстве лежит вход — видно в профиле. */
+export function storageKind(): string {
+    return native() ? 'системное хранилище' : 'хранилище браузера'
+}
+
+/** Запоминает причину, по которой вход пришлось спросить заново. */
+export function noteSessionEnd(reason: SessionEnd): void {
+    try {
+        localStorage.setItem(WHY, reason)
+    } catch {
+        // Не записалось — покажем экран входа без пояснения, только и всего.
+    }
+}
+
+/** Причина прошлого выхода, если она известна. */
+export function lastSessionEnd(): SessionEnd | null {
+    try {
+        return (localStorage.getItem(WHY) as SessionEnd) || null
+    } catch {
+        return null
+    }
+}
 
 function native(): boolean {
   const w = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }
@@ -42,7 +75,11 @@ function toWeb(token: string | null) {
 
 /** Достаёт сохранённый вход. */
 export async function loadToken(): Promise<string | null> {
-  if (!native()) return fromWeb()
+  if (!native()) {
+    const web = fromWeb()
+    if (!web) noteSessionEnd('нет-сохранённого')
+    return web
+  }
 
   const { value } = await Preferences.get({ key: KEY })
   if (value) {
@@ -56,6 +93,7 @@ export async function loadToken(): Promise<string | null> {
   // ещё цел — переносим, чтобы человек не вводил пароль лишний раз.
   const legacy = fromWeb()
   if (legacy) await Preferences.set({ key: KEY, value: legacy })
+  else noteSessionEnd('нет-сохранённого')
   return legacy
 }
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { noteSessionEnd } from '../session'
 import type { ReactNode } from 'react'
 import axios from 'axios'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -159,7 +160,13 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
     const id = axios.interceptors.response.use(
       (res) => res,
       (err) => {
-        if (err.response?.status === 401) onLogout()
+        if (err.response?.status === 401) {
+          // Отмечаем причину: сохранённый вход был, но сервер его не принял.
+          // Это совсем другой случай, чем «вход не сохранился», и по экрану
+          // входа их не различить.
+          noteSessionEnd('сервер-отклонил')
+          onLogout()
+        }
         return Promise.reject(err)
       },
     )

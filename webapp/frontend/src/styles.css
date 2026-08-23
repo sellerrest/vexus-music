@@ -2475,6 +2475,26 @@ img { display: block; }
     .lp-band-run, .lp-glow i { animation: none; }
 }
 
+/* Пояснение на экране входа: почему он снова спрашивает почту и пароль.
+   Тон спокойный — это не ошибка, а ответ на немой вопрос человека. */
+.login-why {
+    margin-top: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--faint);
+}
+
+/* Версия сборки внизу профиля — мелко, но доступно. */
+.profile-build {
+    margin: 18px 0 8px;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+}
+
 /* ===================== РАДИОВЕЩАНИЕ ===================== */
 
 /* Вместо полосы перемотки у эфира — подпись с горящей точкой. Занимает то же
