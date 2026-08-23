@@ -1,0 +1,19 @@
+node_modules/
+dist/
+dist-app/
+build/
+.gradle/
+apps/desktop/app/
+apps/desktop/release/
+apps/mobile/www/
+apps/mobile/android/app/src/main/assets/public/
+
+# Ключ подписи и пароли к нему — только на машине сборки. Google Play намертво
+# привязывает приложение к ключу первой публикации: выложить его — значит
+# отдать любому желающему право выпускать обновления от твоего имени.
+*.keystore
+*.jks
+keystore.properties
+local.properties
+.env
+.env.*

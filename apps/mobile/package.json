@@ -1,0 +1,16 @@
+{
+  "name": "vexus-music-mobile",
+  "version": "1.0.0",
+  "description": "Vexus Music для Android",
+  "private": true,
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/preferences": "^7.0.4",
+    "@jofr/capacitor-media-session": "^4.0.0"
+  }
+}

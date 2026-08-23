@@ -1,0 +1,11 @@
+{
+  "appId": "pw.vexus.music",
+  "appName": "Vexus Music",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#141414"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

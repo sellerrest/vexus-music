@@ -1,0 +1,40 @@
+// Корневой файл сборки Android-проекта.
+
+/*
+ * Зеркало Google Maven идёт первым.
+ *
+ * Прямое соединение с dl.google.com отсюда работает через раз: первая сборка
+ * упала с обрывом TLS-рукопожатия, хотя тот же самый файл и curl, и Java
+ * скачивают со стотым кодом. Зеркало отвечает стабильно, а сам Google
+ * оставлен следующим в списке — если в зеркале чего-то не окажется,
+ * зависимость доедет напрямую.
+ */
+buildscript {
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.7.2'
+        // Плагин google-services (Firebase) убран намеренно: push-уведомлений
+        // в приложении нет, google-services.json тоже, а зависимость тянулась
+        // при каждой сборке и падала первой.
+    }
+}
+
+apply from: "variables.gradle"
+
+allprojects {
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        google()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

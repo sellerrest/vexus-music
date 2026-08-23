@@ -1,0 +1,63 @@
+{
+  "name": "vexus-music-desktop",
+  "version": "1.0.0",
+  "description": "Vexus Music для Windows",
+  "main": "main.js",
+  "author": "Vexus",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "pw.vexus.music",
+    "productName": "Vexus Music",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "app/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Vexus Music"
+    },
+    "portable": {
+      "artifactName": "VexusMusic-portable-${version}.exe"
+    },
+    "protocols": [
+      {
+        "name": "Vexus Music",
+        "schemes": [
+          "vexmus"
+        ]
+      }
+    ]
+  }
+}

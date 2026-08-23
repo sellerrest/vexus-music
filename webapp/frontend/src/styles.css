@@ -1,0 +1,2696 @@
+@font-face {
+    font-family: 'Onest';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/onest-400.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Onest';
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+    src: url('/fonts/onest-800.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Unbounded';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/unbounded-600.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Unbounded';
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: url('/fonts/unbounded-900.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/Montserrat-Regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/Montserrat-SemiBold.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/Montserrat-Bold.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Montserrat';
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+    src: url('/fonts/Montserrat-ExtraBold.woff2') format('woff2');
+}
+/*
+ * Тёмная тема — самостоятельный набор цветов, а не вывернутый наизнанку
+ * светлый. Отсюда три вещи, которые дальше держатся по всему файлу:
+ *
+ * 1. Глубина задаётся светом, а не тенью. Тень на тёмном фоне не видна —
+ *    видно только то, что элемент светлее подложки. Поэтому поверхности
+ *    выстроены лесенкой: чем «выше» блок, тем светлее (--surface →
+ *    --surface-4), а у всплывающих сверху лежит ещё и волосяная граница.
+ * 2. Текст не чисто белый: #fff на почти чёрном режет глаз и «звенит».
+ *    Иерархия — тремя уровнями прозрачности белого: 92 / 60 / 38.
+ * 3. Цвета приглушены. Чистый насыщенный цвет на тёмном вибрирует и лезет
+ *    вперёд текста, поэтому насыщенность отовсюду срезана примерно до 60%.
+ */
+:root {
+    --bg: #0a0a0c;
+    --surface: #121214;
+    --surface-2: #1a1a1c;
+    --surface-3: #242426;
+    /* Уровень для всего, что всплывает поверх интерфейса: подсказки,
+       сообщения, регуляторы. */
+    --surface-4: #2e2e32;
+    --border: rgba(255, 255, 255, 0.07);
+    /* Волосяная граница у всплывающих блоков — она отделяет их от фона
+       вместо тени. */
+    --hairline: rgba(255, 255, 255, 0.11);
+
+    --text: rgba(255, 255, 255, 0.92);
+    --muted: rgba(255, 255, 255, 0.6);
+    --faint: rgba(255, 255, 255, 0.38);
+    /* Плотный светлый — там, где белым закрашивают фон (кнопка
+       воспроизведения, ползунки), а не пишут текст. */
+    --solid: #e8e8ea;
+
+    --accent: #41bccf;
+    --danger: #db7676;
+    --success: #67c188;
+
+    --nav-h: 58px;
+    --player-h: 58px;
+    --gap: 8px;
+}
+/*
+ * Телефон: фон не чёрный, а мягкий серый.
+ *
+ * На широком экране почти чёрный фон — это рама вокруг светлых карточек, он
+ * там и должен уходить на задний план. На телефоне карточек нет: страница
+ * лежит прямо на фоне во весь экран, и то же значение читается уже не как
+ * рама, а как чёрный провал.
+ *
+ * Поднимается вся лесенка целиком, а не один --bg. Иначе поверхности
+ * (строки профиля, шторки, обложки-заглушки) оказались бы ТЕМНЕЕ фона —
+ * порядок «выше = светлее» перевернулся бы, и блоки читались бы как ямы.
+ * Шаг между ступенями к верху растёт: у светлых уровней глаз различает
+ * разницу хуже, и равномерный шаг сливался бы.
+ *
+ * Серый строго нейтральный: R = G = B. Стоит синему каналу уйти хотя бы на
+ * четыре пункта вперёд — и весь экран начинает отдавать в синеву, тем
+ * заметнее, чем светлее ступень.
+ *
+ * Граница та же, что у раскладки (см. useIsDesktop) — палитра и вёрстка
+ * переключаются вместе.
+ */
+@media (max-width: 1023px) {
+    :root {
+        --bg: #141414;
+        --surface: #1b1b1b;
+        --surface-2: #232323;
+        --surface-3: #2c2c2c;
+        --surface-4: #373737;
+    }
+}
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    /*
+     * Текст не выделяется нигде — приложение, а не веб-страница.
+     *
+     * Кроме опрятности это убирает две настоящие помехи: на телефоне долгое
+     * нажатие по названию трека вызывало системное меню «Копировать», а на
+     * компьютере протяжка по списку выделяла подписи синим вместо прокрутки.
+     * Поля ввода исключены ниже — там выделение необходимо для правки.
+     */
+    -webkit-user-select: none;
+    user-select: none;
+    /* iOS показывает своё меню по долгому нажатию отдельно от выделения. */
+    -webkit-touch-callout: none;
+}
+/* Поиск, вход, названия плейлистов: тут выделять и копировать нужно. */
+input,
+textarea,
+[contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+}
+html {
+    overflow-x: hidden;
+    touch-action: pan-x pan-y;
+}
+body {
+    font-family: 'Montserrat', -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: var(--text);
+    background: var(--bg);
+    /* Кавычки и тире на краю выносятся в поле — левый край текста читается
+       как одна линия по буквам, а не «съезжает» под кавычкой. Поддерживают
+       не все браузеры, и это ровно тот случай, когда не поддержавший просто
+       рисует как раньше. */
+    hanging-punctuation: first last;
+}
+/* Капс без трекинга выглядит душно и сбито. Класс — для разметки, где
+   заглавные приходят самим текстом, а не через text-transform. */
+.caps {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+/* Числа в один столбец: длительности, счётчики, таймеры. Цифры одной ширины
+   не пляшут при каждом обновлении секунды. */
+.tnum { font-variant-numeric: tabular-nums; }
+button, input {
+    font-family: inherit;
+    color: inherit;
+}
+button { cursor: pointer; background: none; border: none; }
+img { display: block; }
+/* ===================== SHELL ===================== */
+
+.app-shell {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    min-height: 100vh;
+}
+.page {
+    padding: 16px 16px calc(var(--nav-h) + var(--player-h) + var(--gap) + env(safe-area-inset-bottom, 0px) + 20px);
+}
+.page-heading {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    margin-bottom: 22px;
+}
+.section { margin-bottom: 28px; }
+.section-title {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    margin-bottom: 14px;
+}
+.section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.section-header .section-title { margin-bottom: 0; }
+.section-action {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+}
+.empty-state {
+    padding: 48px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+}
+.inline-icon { vertical-align: -1px; margin-right: 4px; }
+/* ===================== COVERS ===================== */
+
+/* Строго квадратные: превью с YouTube приходят 16:9, лишнее обрезается по
+   центру (сервер режет сам, object-fit страхует на случай любой другой
+   картинки — например, загруженной пользователем обложки плейлиста).
+   display:block обязателен: картинка по умолчанию инлайновая, а <button>
+   (карточка в карусели, строка трека) центрирует содержимое — из-за этого
+   обложки уезжали в центр вместо левого края. */
+.cover {
+    display: block;
+    object-fit: cover;
+    aspect-ratio: 1 / 1;
+    background: var(--surface-2);
+    flex-shrink: 0;
+}
+.cover-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--faint);
+    background: var(--surface-2);
+}
+/* ===================== CAROUSEL ===================== */
+
+.carousel {
+    display: flex;
+    justify-content: flex-start;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    /* Никаких отрицательных отступов. Раньше тут было margin: 0 -16px с
+       компенсацией через padding — карточки красиво уезжали под край экрана,
+       но это работает ровно до тех пор, пока у родителя ровно такой же
+       отступ. Стоит ширине окна оказаться другой (например, пока Telegram
+       ещё разворачивает мини-апп), и обложки вылезают за левый край. */
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    /* Перетаскивание мышью реализовано в Carousel.tsx — тут гасим выделение
+       текста, иначе при драге выделяются подписи карточек. */
+    -webkit-user-select: none;
+    user-select: none;
+}
+.carousel::-webkit-scrollbar { display: none; }
+.card-tile {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+/*
+ * Подписи не должны быть шире карточки.
+ *
+ * В колонке с align-items: flex-start дети растягиваются по своему тексту, а
+ * не по ширине родителя — и обрезка многоточием не срабатывает вовсе, потому
+ * что обрезать нечего: элемент ровно такой, каким его сделал текст. Длинное
+ * имя исполнителя из-за этого наезжало на соседнюю карточку.
+ */
+.card-tile-title,
+.card-tile-subtitle {
+    width: 100%;
+    min-width: 0;
+}
+/* Мозаика из обложек треков вместо одной картинки. Скругление задаёт
+   контейнер и подрезает плитки через overflow — иначе на стыках вылезали бы
+   светлые уголки от собственных радиусов. */
+.cover-mosaic {
+    display: grid;
+    gap: 0;
+    overflow: hidden;
+    background: var(--surface-2);
+    flex-shrink: 0;
+}
+.cover-mosaic .cover { width: 100%; height: 100%; }
+/* Плитка без картинки: «Любимые треки», «Радио», «Открытие», жанры. */
+/* Сам градиент приходит инлайном из gradients.ts — там он один на всё
+   приложение, чтобы «Любимые треки» на главной и в «Медиатеке» не могли
+   разъехаться, как это уже случилось. */
+.tile-art {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--text);
+}
+.card-tile-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.card-tile-subtitle {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* ===================== TRACK LIST ===================== */
+
+.track-list { display: flex; flex-direction: column; }
+.track-row {
+    display: flex;
+    align-items: center;
+    /* Нулевой боковой отступ у самой строки: обложка должна вставать ровно по
+       левому краю контента, как заголовки секций. Раньше тут был padding, и
+       строки визуально выпирали относительно остальной вёрстки. */
+    gap: 2px;
+    border-radius: 6px;
+}
+.track-row.is-current .track-row-title { color: var(--accent); }
+.track-row-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    text-align: left;
+}
+.track-row-cover { position: relative; flex-shrink: 0; }
+.track-row-cover-badge {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 4px;
+    color: var(--accent);
+}
+.track-row-info { flex: 1 1 auto; min-width: 0; }
+.track-row-title {
+    font-size: 14.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.track-row-meta {
+    display: flex;
+    font-variant-numeric: tabular-nums;
+    align-items: center;
+    gap: 6px;
+    margin-top: 3px;
+    font-size: 12.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+}
+.track-row-artist {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.track-row-badge {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    /* Капсу нужен воздух: 8% трекинга (см. .caps ниже). */
+    letter-spacing: 0.08em;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: var(--surface-3);
+    color: var(--muted);
+}
+.track-row-time { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.track-row-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+}
+/* Круглое сердечко слева от «⋮»: серый контур, при добавлении в любимые
+   заливается белым. */
+.track-heart {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--hairline);
+    color: var(--muted);
+    transition: color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.track-heart:active { transform: scale(0.88); }
+.track-heart.active {
+    color: var(--text);
+    border-color: var(--text);
+}
+.track-row-skeleton {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+.track-row-skeleton-text {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+/* ===================== SKELETON ===================== */
+
+@keyframes shimmer {
+    0% { background-position: -300px 0; }
+    100% { background-position: 300px 0; }
+}
+.skeleton {
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+    background-size: 600px 100%;
+    animation: shimmer 1.3s infinite linear;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.9s linear infinite; }
+/* ===================== SEARCH ===================== */
+
+.search-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 22px;
+}
+.search-field-icon {
+    position: absolute;
+    left: 14px;
+    color: var(--faint);
+    pointer-events: none;
+}
+.search-field input {
+    width: 100%;
+    height: 48px;
+    padding: 0 44px;
+    border: none;
+    border-radius: 6px;
+    background: var(--solid);
+    color: var(--bg);
+    font-size: 15px;
+    font-weight: 600;
+    outline: none;
+}
+.search-field input::placeholder { color: rgba(10, 10, 12, 0.45); font-weight: 500; }
+.search-field-clear {
+    position: absolute;
+    right: 12px;
+    display: flex;
+    color: var(--faint);
+}
+.recent-list { display: flex; flex-direction: column; }
+.recent-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 4px;
+    text-align: left;
+    font-size: 14.5px;
+    color: var(--text);
+}
+.recent-row svg { color: var(--muted); flex-shrink: 0; }
+/* ===================== BROWSE HEAD + SEARCH ISLAND ===================== */
+
+.browse-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 44px;
+    margin-bottom: 22px;
+}
+.browse-head .page-heading { margin-bottom: 0; }
+/* Поисковая строка появляется только по нажатию на лупу и занимает всю
+   шапку — в спокойном состоянии её не видно вообще. */
+.search-island {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 12px;
+    border-radius: 22px;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    transform-origin: right center;
+}
+.search-island-icon { color: var(--muted); flex-shrink: 0; }
+.search-island input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    outline: none;
+}
+.search-island input::placeholder { color: var(--muted); }
+.search-island-close {
+    flex-shrink: 0;
+    display: flex;
+    color: var(--muted);
+}
+/* ===================== LIBRARY ===================== */
+
+.library-list { display: flex; flex-direction: column; }
+.library-row-wrap { display: flex; align-items: center; gap: 2px; }
+.library-row-wrap .library-row { flex: 1 1 auto; min-width: 0; }
+.library-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    text-align: left;
+}
+.library-liked-tile {
+    width: 56px;
+    height: 56px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    /* Градиент задаётся инлайном из gradients.ts — единый источник на всё
+       приложение, здесь его дублировать нельзя. */
+}
+.library-row-info { flex: 1 1 auto; min-width: 0; }
+.library-row-title {
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.library-row-sub {
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    margin-top: 3px;
+}
+.create-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+.create-row input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    background: var(--surface);
+    font-size: 14px;
+    outline: none;
+}
+.create-row input:focus { border-color: var(--accent); }
+.create-row button {
+    flex-shrink: 0;
+    padding: 0 18px;
+    border-radius: 6px;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 14px;
+    font-weight: 700;
+}
+.create-row button:disabled { opacity: 0.4; }
+/* ===================== PLAYLIST DETAIL ===================== */
+
+.playlist-page { position: relative; padding-top: 8px; }
+.playlist-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 380px;
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 0;
+}
+.playlist-page > *:not(.playlist-bg) { position: relative; z-index: 1; }
+.playlist-back { margin-bottom: 8px; }
+.playlist-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 8px 0 20px;
+}
+/* Не тень, а тонкая светлая грань: на тёмном фоне отделяет обложку от
+   подложки, тогда как тень там попросту не видна. */
+.playlist-hero-cover { box-shadow: 0 0 0 1px var(--border); }
+.playlist-hero-liked {
+    width: 180px;
+    height: 180px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    /* Градиент — инлайном из gradients.ts, см. выше. */
+    box-shadow: 0 0 0 1px var(--border);
+}
+.playlist-hero-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    margin-top: 18px;
+}
+.playlist-hero-meta {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    margin-top: 6px;
+}
+.playlist-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+    margin-bottom: 12px;
+}
+.playlist-shuffle {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+}
+.playlist-play {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: var(--bg);
+    padding-left: 3px;
+}
+/* ===================== РАСКЛАДКА ДЛЯ ШИРОКОГО ЭКРАНА ===================== */
+
+.desktop-shell {
+    display: grid;
+    /* Панель фиксированной ширины, содержимое забирает остальное. minmax с
+       нулём обязателен: без него длинные названия в списке растягивают
+       колонку и ломают сетку. */
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 8px;
+    height: 100vh;
+    padding: var(--gap);
+    /* Место под мини-плеер: он лежит поверх, поэтому высоту надо освободить
+       вручную. Считаем из тех же переменных, а не числом — раньше тут стояло
+       96px при плеере в 58 + 8 отступа, и сверху зиял лишний просвет в 30px,
+       хотя снизу было 8. */
+    padding-bottom: calc(var(--player-h) + var(--gap) * 2);
+}
+/* Панель — не карточка, а колонка из двух карточек: навигация и медиатека
+   лежат в отдельных блоках с зазором между ними. Поэтому фона и скругления
+   у самой панели нет, они у её частей. */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+}
+.sidebar-nav {
+    flex-shrink: 0;
+    border-radius: 12px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 8px;
+}
+/* Строкой, а не квадратом: иконка плюс подпись — так понятнее, куда ведёт. */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 42px;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--muted);
+    transition: color 0.15s, background 0.15s;
+}
+.sidebar-item:hover { color: var(--text); background: var(--surface-2); }
+.sidebar-item.active { color: var(--text); background: var(--surface-2); }
+
+/* Поиск перекрывает правый блок и доходит до края окна. */
+.desktop-search {
+    position: absolute;
+    top: 18px;
+    left: 320px;
+    right: 16px;
+    z-index: 30;
+    transform-origin: left center;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 42px;
+    padding: 0 8px 0 14px;
+    border-radius: 10px;
+    /* Всплывает над правым блоком — значит, светлее его, с гранью. */
+    background: var(--surface-4);
+    border: 1px solid var(--hairline);
+}
+.desktop-search input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 14.5px;
+}
+.desktop-search > svg { flex-shrink: 0; color: var(--muted); }
+.desktop-search button { flex-shrink: 0; color: var(--muted); padding: 6px; }
+
+/* Возврат внутри правого блока (см. Dashboard). */
+.pane-back {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 5;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--text);
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+}
+.pane-back:active { transform: scale(0.9); }
+.sidebar-library {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    border-radius: 12px;
+    background: var(--surface);
+}
+/* Внутри узкой панели «Медиатека» набрана как полноразмерная страница —
+   ужимаем отступы и заголовок под ширину блока. */
+.sidebar-library .page { padding: 14px 12px 16px; }
+.sidebar-library .page-heading { font-size: 19px; margin-bottom: 14px; }
+.main-pane {
+    position: relative;
+    min-width: 0;
+    overflow-y: auto;
+    border-radius: 12px;
+    background: var(--surface);
+}
+/* Строка поиска лежит поверх блока, поэтому пока она открыта — отводим ей
+   место сверху. Иначе она накрывала бы первые строки результата. */
+.main-pane.searching { padding-top: 52px; }
+/* Сетка — точка отсчёта для строки поиска и кнопки возврата. */
+.desktop-shell { position: relative; }
+/* Ограничение ширины нужно телефонной раскладке — на широком экране оно
+   сплющило бы обе колонки в 640 пикселей. */
+.app-shell.is-desktop {
+    max-width: none;
+    min-height: 0;
+}
+/* Страницы внутри областей уже не должны отводить место под нижнее меню —
+   его на широком экране нет. */
+.is-desktop .page { padding-bottom: 24px; }
+.is-desktop .bottom-nav { display: none; }
+/* Мини-плеер на всю ширину внизу: нижнего меню под ним больше нет, и
+   прижиматься не к чему. */
+.is-desktop .mini-player {
+    max-width: none;
+    /* Тот же отступ, что у сетки со всех сторон, — просветы сверху и снизу
+       от плеера получаются одинаковыми. */
+    bottom: var(--gap);
+}
+
+/* ===================== ЭКВАЛАЙЗЕР ===================== */
+
+.eq-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.eq-preset {
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--surface-2);
+}
+.eq-preset.active { color: var(--bg); background: var(--accent); }
+
+.eq-box {
+    position: relative;
+    border-radius: 14px;
+    background: var(--surface-2);
+    padding: 10px 8px 6px;
+    /* Палец ведут по вертикали — без этого браузер уводит жест в прокрутку
+       страницы, и полосу не вытянуть. */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: ns-resize;
+}
+.eq-svg { display: block; width: 100%; height: 220px; }
+.eq-zero {
+    stroke: var(--hairline);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    vector-effect: non-scaling-stroke;
+}
+.eq-bar { fill: rgba(65, 188, 207, 0.22); transition: fill 0.12s; }
+.eq-bar.active { fill: rgba(65, 188, 207, 0.44); }
+.eq-curve {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    /* Поле растянуто по ширине (preserveAspectRatio: none), и без этого
+       линия вытянулась бы вместе с ним и стала неровной по толщине. */
+    vector-effect: non-scaling-stroke;
+}
+.eq-dot { fill: var(--text); }
+.eq-dot.active { r: 2.4; }
+.eq-labels,
+.eq-readout {
+    display: flex;
+    margin-top: 6px;
+}
+.eq-labels span,
+.eq-readout span {
+    flex: 1 1 0;
+    text-align: center;
+    font-size: 10.5px;
+    color: var(--muted);
+}
+.eq-readout span {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.eq-labels span.active,
+.eq-readout span.active { color: var(--accent); }
+.eq-reset {
+    margin-top: 16px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--surface-2);
+}
+.eq-hint {
+    margin-top: 14px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+/* ===================== ПРОФИЛЬ ===================== */
+
+.pfp { position: relative; margin: 0 auto; }
+.pfp-ring {
+    position: absolute;
+    pointer-events: none;
+    z-index: 3;
+    transform: rotate(90deg);
+}
+/* Пунктир 23/15 даёт период 38 — ровно на столько и смещаем за цикл, иначе
+   в месте стыка была бы заметна «склейка». */
+@keyframes pfp-dash-move {
+    from { stroke-dashoffset: 38; }
+    to { stroke-dashoffset: 0; }
+}
+.pfp-dash { animation: pfp-dash-move 1.2s linear infinite; }
+.pfp-img {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    /* Скругление приходит инлайном из ProfileAvatar — оно зависит от размера. */
+    object-fit: cover;
+    display: block;
+    background: var(--surface-2);
+}
+.pfp-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+}
+.profile-top { text-align: center; padding: 14px 0 26px; }
+.profile-name {
+    margin-top: 18px;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+}
+.profile-username { margin-top: 3px; font-size: 13px; color: var(--muted); }
+
+.profile-section { margin-bottom: 22px; }
+.profile-section-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    /* 0.11em ≈ 11% — мелкий капс требует воздуха больше, чем крупный. */
+    letter-spacing: 0.11em;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+/* Одна колонка по умолчанию (телефон), две — когда места хватает. Ширину
+   решает сама сетка, а не измерения в коде: так раскладка подстраивается и
+   при изменении размера окна. */
+.profile-rows {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+@media (min-width: 560px) {
+    .profile-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.profile-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 0 14px;
+    border-radius: 12px;
+    text-align: left;
+    background: var(--surface-2);
+    transition: background 0.15s;
+}
+.profile-row:hover { background: var(--surface-3); }
+.profile-row:active { transform: scale(0.99); }
+.profile-row-icon {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    color: var(--text);
+}
+.profile-row-icon.accent { background: linear-gradient(135deg, #2c9bae, #416dcf); }
+.profile-row-icon.blue { background: linear-gradient(135deg, #5b8ad6, #6466d8); }
+.profile-row-icon.green { background: linear-gradient(135deg, #28a179, #7fb52d); }
+.profile-row-icon.pink { background: linear-gradient(135deg, #cb336a, #d86494); }
+.profile-row-icon.purple { background: linear-gradient(135deg, #8353d4, #c75ed7); }
+.profile-row-icon.gray { background: linear-gradient(135deg, #6b7280, #374151); }
+/* Кнопка переспрашивает — красим её и подпись, чтобы второе нажатие было
+   осознанным, а не «пальцем по инерции». */
+.profile-row.danger {
+    background: rgba(219, 118, 118, 0.13);
+}
+.profile-row.danger .profile-row-label { color: var(--danger); }
+.profile-row.danger .profile-row-arrow { color: var(--danger); }
+.profile-row-text { flex: 1 1 auto; min-width: 0; }
+.profile-row-label {
+    display: block;
+    font-size: 14.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.profile-row-hint {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.profile-row-arrow { flex-shrink: 0; color: var(--muted); }
+
+/* ===================== КНОПКА «НАЗАД» (только в браузере) ===================== */
+
+.app-back {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: 12px;
+    /* Выше полноэкранного плеера (900), но ниже шторок (1000): при открытой
+       шторке нажимать «назад» нельзя — сначала закрывается она. */
+    z-index: 950;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--text);
+    background: rgba(46, 46, 50, 0.92);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--hairline);
+}
+.app-back:active { transform: scale(0.9); }
+
+/* ===================== ВХОД И АККАУНТ ===================== */
+
+.login-shell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 16px;
+}
+.login-card {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.login-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    text-align: center;
+}
+.login-hint {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 6px;
+}
+.login-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--muted);
+}
+.login-field input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 46px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 15px;
+}
+.login-error {
+    font-size: 13px;
+    color: var(--danger);
+    text-align: center;
+}
+.login-submit {
+    height: 46px;
+    border-radius: 12px;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.login-submit:disabled { opacity: 0.45; }
+
+.account-hint {
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--muted);
+    margin-bottom: 14px;
+}
+.account-current {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    margin-bottom: 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--success);
+    background: rgba(103, 193, 136, 0.13);
+}
+.account-form { display: flex; flex-direction: column; gap: 10px; }
+.account-notes { display: flex; flex-direction: column; gap: 4px; }
+.account-warn { font-size: 12.5px; color: var(--danger); }
+
+/* ===================== ВСПЛЫВАЮЩИЕ СООБЩЕНИЯ ===================== */
+
+.toast-host {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    right: 12px;
+    /* Выше полноэкранного плеера (900) и шторок (1000): сообщение должно
+       быть видно откуда угодно. Стояло 120 — то есть ПОД плеером, и оттуда
+       его не было видно вовсе. */
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    /* Само поле сообщений сквозное для нажатий — иначе невидимая колонка
+       перехватывала бы тапы по интерфейсу под ней. */
+    pointer-events: none;
+}
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: min(78vw, 320px);
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    background: rgba(48, 48, 53, 0.96);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--hairline);
+}
+.toast-icon { flex-shrink: 0; color: var(--danger); }
+
+/* ===================== ЛЕНТЫ (радио, открытие, похожее) ===================== */
+
+.feed-head { margin-bottom: 18px; }
+.feed-subtitle {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    margin-top: 4px;
+}
+.feed-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+.feed-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+    background: var(--surface);
+    color: var(--text);
+}
+.feed-btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+}
+.feed-retry {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+}
+/* Заголовок внутри строки с кнопкой «Все» — свой нижний отступ там лишний,
+   его задаёт сам .section-header. */
+.section-title.flush { margin-bottom: 0; }
+.section-more {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    padding: 4px 2px;
+}
+
+/* ===================== BOTTOM NAV ===================== */
+
+.bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    display: flex;
+    /* Полупрозрачное меню поверх контента: цвет свой, но берётся из той же
+       палитры, что и фон, — иначе на телефоне под ним оставалась бы чёрная
+       полоса, не совпадающая с серым фоном страницы. */
+    background: rgba(20, 20, 20, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    z-index: 400;
+}
+.bottom-nav-item {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--muted);
+    transition: color 0.15s;
+}
+.bottom-nav-item.active { color: var(--text); }
+.bottom-nav-label { font-size: 10.5px; font-weight: 600; }
+/* ===================== MARQUEE (бегущее название) ===================== */
+
+.marquee { overflow: hidden; min-width: 0; }
+
+.marquee-inner {
+    display: flex;
+    white-space: nowrap;
+    width: max-content;
+}
+
+/* Пока название помещается — обычная строка с многоточием, без всякой езды. */
+.marquee:not(.is-animated) .marquee-inner { width: 100%; }
+.marquee:not(.is-animated) span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Отступ висит на самих копиях: так обе одинаковой ширины и сдвиг ровно на
+   половину попадает в начало второй — стык незаметен. */
+.marquee.is-animated span { padding-right: 48px; }
+.marquee.is-animated .marquee-inner { animation: marquee-scroll linear infinite; }
+
+@keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+/* ===================== MINI PLAYER ===================== */
+
+.mini-player {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + var(--gap));
+    max-width: 624px;
+    margin: 0 auto;
+    height: var(--player-h);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface-3);
+    z-index: 401;
+    cursor: pointer;
+    /* Сжимается при прокрутке вниз, разворачивается при прокрутке вверх
+       (состояние считает MiniPlayer.tsx). */
+    transition: height 0.22s ease, border-radius 0.22s ease, opacity 0.22s ease;
+}
+.mini-player.compact {
+    height: 44px;
+    border-radius: 22px;
+    opacity: 0.96;
+}
+.mini-player.compact .mini-player-artist { display: none; }
+/* Подложка цветом обложки — приглушённая, чтобы текст поверх читался. */
+.mini-player-bg {
+    position: absolute;
+    inset: 0;
+    opacity: 0.5;
+    z-index: 0;
+}
+.mini-player > *:not(.mini-player-bg) { position: relative; z-index: 1; }
+.mini-player-info { flex: 1 1 auto; min-width: 0; }
+.mini-player-title {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mini-player-artist {
+    font-size: 11.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+.mini-player-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.mini-player-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+}
+.mini-player-btn.primary { width: 36px; height: 36px; color: var(--text); }
+
+.mini-player-btn.heart { color: var(--muted); transition: color 0.15s, transform 0.15s; }
+.mini-player-btn.heart.active { color: var(--text); }
+.mini-player-btn.heart:active { transform: scale(0.86); }
+/* Голубая полоса длительности во всю ширину островка, по самому низу. */
+.mini-player-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2.5px;
+    background: rgba(255, 255, 255, 0.16);
+    z-index: 2;
+}
+.mini-player-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.25s linear;
+}
+/* ===================== NOW PLAYING ===================== */
+
+.now-playing {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    padding: 0 24px calc(28px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg);
+    overflow: hidden;
+}
+.now-playing-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+.now-playing > *:not(.now-playing-bg) { position: relative; z-index: 1; }
+.now-playing-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    margin-top: env(safe-area-inset-top, 0px);
+    flex-shrink: 0;
+}
+.now-playing-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    color: var(--muted);
+}
+.np-icon-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+}
+.np-icon-btn.active { color: var(--accent); }
+.now-playing-art {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 12px 0;
+}
+.np-cover {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    aspect-ratio: 1;
+    box-shadow: 0 0 0 1px var(--border);
+}
+.now-playing-queue {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 8px 0;
+}
+.np-queue-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+    margin-bottom: 12px;
+}
+.np-queue-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 0;
+}
+.np-queue-info { flex: 1 1 auto; min-width: 0; }
+.np-queue-name {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.np-queue-artist {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.now-playing-meta {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 0 12px;
+}
+
+.np-meta-text { flex: 1 1 auto; min-width: 0; }
+
+/* Правая колонка блока с названием: кнопка звука сверху, сердечко под ней. */
+.np-meta-side {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.np-volume { position: relative; }
+.np-volume-btn {
+    width: 40px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    transition: color 0.15s, transform 0.15s;
+}
+.np-volume-btn.active { color: var(--text); }
+.np-volume-btn:active { transform: scale(0.86); }
+/* Регулятор выезжает НАД кнопкой, поэтому bottom, а не top: снизу его
+   перекрыл бы сам блок с названием и полоса перемотки. */
+.np-volume-popover {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    /* Сдвиг на -50% задаётся не тут, а в анимации (см. VolumeControl.tsx):
+       framer-motion пишет transform инлайном и перетёр бы это правило. */
+    transform-origin: bottom center;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 10px 10px;
+    border-radius: 22px;
+    background: rgba(46, 46, 50, 0.94);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--hairline);
+}
+.np-volume-bar {
+    position: relative;
+    width: 6px;
+    height: 110px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    /* Палец тянет вертикально — без этого браузер уводит жест в прокрутку
+       страницы и регулятор дёргается. */
+    touch-action: none;
+    cursor: pointer;
+}
+.np-volume-fill {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+}
+.np-volume-knob {
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    width: 14px;
+    height: 14px;
+    margin-left: -7px;
+    border-radius: 50%;
+    background: var(--solid);
+}
+.np-volume-value {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+.np-heart {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    transition: color 0.15s, transform 0.15s;
+}
+
+.np-heart.active { color: var(--text); }
+.np-heart:active { transform: scale(0.86); }
+
+.np-title {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+}
+.np-artist {
+    font-size: 15px;
+    color: var(--muted);
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.np-seek { flex-shrink: 0; }
+/* Область касания заметно выше самой полоски: попасть пальцем в 4px нереально. */
+.np-seek-bar {
+    position: relative;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    touch-action: none;
+}
+.np-seek-bar::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.28);
+}
+.np-seek-fill {
+    position: relative;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--solid);
+    z-index: 1;
+}
+.np-seek-knob {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--solid);
+}
+.np-seek-times {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    margin-top: 6px;
+}
+.np-controls {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 18px;
+}
+.np-side-btn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+}
+.np-side-btn.active { color: var(--accent); }
+.np-skip-btn {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+}
+.np-play-btn {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--solid);
+    color: var(--bg);
+}
+/* ===================== SHEET ===================== */
+
+.sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: flex-end;
+    z-index: 1000;
+}
+.sheet {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    max-height: 76vh;
+    overflow-y: auto;
+    background: var(--surface-2);
+    border-radius: 14px 14px 0 0;
+    padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+.sheet-grabber {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface-4);
+    margin: 0 auto 14px;
+}
+.sheet-track {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+}
+.sheet-track-info { flex: 1 1 auto; min-width: 0; }
+.sheet-track-title {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sheet-track-artist {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+.sheet-list { display: flex; flex-direction: column; }
+.sheet-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 52px;
+    text-align: left;
+    font-size: 14.5px;
+    color: var(--text);
+}
+.sheet-row:disabled { color: var(--muted); }
+.sheet-row-grow { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-create-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.sheet-create-row input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 46px;
+    padding: 0 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    background: var(--surface);
+    font-size: 14px;
+    outline: none;
+}
+.sheet-create-row button {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: var(--bg);
+}
+.sheet-create-row button:disabled { background: var(--surface-3); color: var(--muted); }
+.sheet-hint {
+    padding: 22px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+}
+/* ===================== LOADER ===================== */
+
+.loader-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+}
+.spinner {
+    width: 26px;
+    height: 26px;
+    border: 3px solid var(--surface-3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+/* ===================== VIDEO STAGE ===================== */
+
+.np-stage {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 12px 0;
+    touch-action: pan-y;
+}
+/* Пропорции задаёт само видео (см. VideoStage: считываются из videoWidth/
+   videoHeight при загрузке). Жёсткий 16:9 здесь раньше вписывал кадр 4:3
+   внутрь широкой рамки, дорисовывая чёрные поля слева и справа — хотя в
+   самом файле никаких полей нет. */
+/* Ширина НЕ 100%: рамка облегает клип, а не растягивается на всю сцену.
+   Иначе при любых пропорциях, кроме идеально совпавших, по краям оставалась
+   бы чёрная подложка — те самые «поля». */
+.video-stage {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 1px var(--border);
+}
+.video-stage-empty {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+}
+/* Размер задаёт само видео: масштабируется по меньшей стороне и сохраняет
+   свои пропорции, поэтому подгонять рамку под него не нужно. */
+.video-el {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+}
+.video-stage-empty {
+    flex-direction: column;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.05);
+}
+/* На большом мониторе клип во всю сцену выглядит непропорционально крупным
+   рядом с остальным интерфейсом — ограничиваем по высоте окна. */
+@media (min-width: 1024px) {
+    .video-stage { max-height: 46vh; }
+    .video-el { max-height: 46vh; }
+    .video-stage-empty { max-width: 620px; }
+}
+/* Точки-переключатели «обложка / клип» под сценой. */
+.np-stage-dots {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    padding: 4px 0 2px;
+    flex-shrink: 0;
+}
+.np-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--faint);
+    padding: 0;
+}
+.np-dot.active { background: var(--text); }
+/* ===================== PROFILE: шапка + сетка плиток ===================== */
+
+.profile-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+}
+.profile-head-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--surface-3);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.profile-head-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-head-text { min-width: 0; }
+.profile-head-name {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.profile-head-username { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+.public-link-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 12.5px;
+    color: var(--accent);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* ===================== PUBLIC PAGE ===================== */
+
+.public-page {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding: 24px 16px 40px;
+}
+.public-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 340px;
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 0;
+}
+.public-page > *:not(.public-bg) { position: relative; z-index: 1; }
+.public-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 0 28px;
+}
+.public-cover { box-shadow: 0 0 0 1px var(--border); }
+.public-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    margin-top: 16px;
+}
+.public-bio {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 8px;
+    max-width: 420px;
+    line-height: 1.5;
+}
+.public-section { margin-bottom: 30px; }
+.public-section-title {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 14px;
+}
+.public-play-badge { background: rgba(0, 0, 0, 0.45); color: var(--text); }
+.public-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding-top: 20px;
+    font-size: 12px;
+    color: var(--faint);
+}
+/* Кнопки под шапкой публичного плейлиста: забрать себе и открыть в
+   приложении. Переносятся на вторую строку на узком экране — на телефоне две
+   рядом не помещаются и обрезали бы подписи. */
+.public-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 18px;
+}
+.public-actions .feed-btn {
+    text-decoration: none;
+}
+
+/* ===================== ПРИВЕТСТВЕННАЯ СТРАНИЦА =====================
+
+   Оформление намеренно не такое, как в приложении: там тёмно и тихо, чтобы
+   не мешать музыке, здесь светло и громко — плотные обводки, жёсткие тени,
+   крупный капс. Тот же язык, что на странице VPN: два продукта одного
+   хозяина должны выглядеть роднёй.
+
+   Все правила с приставкой lp-, и палитра своя: приложение красится
+   переменными из :root, а витрине нужен ровно противоположный набор.
+   =================================================================== */
+
+/* Палитра включается классом на <html> — иначе кремовая страница осталась бы
+   лежать на чёрном фоне тела документа, заданном глобально. */
+.landing-mode,
+.landing-mode body {
+    background: #f4f0e3;
+}
+.landing-mode body {
+    color: #14161f;
+    font-family: 'Onest', 'Montserrat', -apple-system, sans-serif;
+    /* Витрина листается, и переносить на неё «приложенческие» запреты жестов
+       незачем. */
+    hanging-punctuation: none;
+}
+.landing-mode ::selection {
+    background: #2b57e8;
+    color: #fffcf3;
+}
+
+.lp {
+    --ink: #14161f;
+    --ink-soft: #363b4e;
+    --muted: #6d7286;
+    --muted-2: #9a9fae;
+    --paper: #fffcf3;
+    --cream: #f4f0e3;
+    --brand: #2b57e8;
+    --brand-bright: #4e82ff;
+    --brand-deep: #13235c;
+    --aqua: #22d3ee;
+
+    position: relative;
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: var(--ink);
+}
+
+/* ---------- Фоновые слои ---------- */
+
+/* Точечная сетка и диагональная штриховка: бумага, а не пустой цвет. */
+.lp-field {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(rgba(20, 22, 31, 0.09) 1.2px, transparent 1.4px),
+        repeating-linear-gradient(135deg, rgba(19, 35, 92, 0.045) 0 1px, transparent 1px 22px);
+    background-size: 26px 26px, auto;
+    -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 35%, transparent 100%);
+    mask-image: radial-gradient(120% 90% at 50% 0%, #000 35%, transparent 100%);
+}
+
+/* Дрейфующие пятна света под сеткой — они дают глубину без единой тени. */
+.lp-glow {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+.lp-glow i {
+    position: absolute;
+    display: block;
+    border-radius: 50%;
+    filter: blur(130px);
+}
+.lp-glow i:nth-child(1) {
+    top: -15%;
+    left: -10%;
+    width: 520px;
+    height: 520px;
+    background: rgba(43, 87, 232, 0.12);
+    animation: lp-drift-a 26s linear infinite;
+}
+.lp-glow i:nth-child(2) {
+    top: 35%;
+    right: -15%;
+    width: 620px;
+    height: 620px;
+    background: rgba(34, 211, 238, 0.14);
+    animation: lp-drift-b 32s linear infinite;
+}
+.lp-glow i:nth-child(3) {
+    bottom: -20%;
+    left: 20%;
+    width: 560px;
+    height: 560px;
+    background: rgba(19, 35, 92, 0.08);
+    animation: lp-drift-c 40s linear infinite;
+}
+@keyframes lp-drift-a { 50% { transform: translate(90px, 60px); } }
+@keyframes lp-drift-b { 50% { transform: translate(-110px, -70px); } }
+@keyframes lp-drift-c { 50% { transform: translate(70px, -50px); } }
+
+/* Плёночное зерно поверх всего: убирает ощущение «плоской заливки». */
+.lp-grain {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22180%22 height=%22180%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%222%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E");
+}
+
+/* ---------- Шапка ---------- */
+
+.lp-nav {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 50;
+    border-bottom: 1px solid rgba(20, 22, 31, 0.12);
+    background: rgba(244, 240, 227, 0.75);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+.lp-nav-in {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.lp-brand {
+    font-family: 'Unbounded', 'Onest', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    text-decoration: none;
+}
+.lp-brand span { color: var(--brand); }
+
+/* Кнопка-таблетка с плотной обводкой: при наведении заливается чернилами. */
+.lp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--ink);
+    text-decoration: none;
+    transition: background 0.16s, color 0.16s;
+}
+.lp-pill:hover { background: var(--ink); color: var(--paper); }
+.lp-arrow { width: 15px; height: 15px; }
+
+/* ---------- Первый экран ---------- */
+
+.lp-main { position: relative; z-index: 10; }
+.lp-hero {
+    position: relative;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 128px 20px 44px;
+}
+/* Гигантский контурный знак-«водяной знак» — только на широком экране. */
+.lp-glyph {
+    position: absolute;
+    top: -20px;
+    right: 10px;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 15rem;
+    line-height: 0.8;
+    color: transparent;
+    -webkit-text-stroke: 1.4px rgba(19, 35, 92, 0.1);
+    pointer-events: none;
+    user-select: none;
+    display: none;
+}
+.lp-hero h1 {
+    font-family: 'Unbounded', 'Onest', sans-serif;
+    font-size: clamp(3.4rem, 13vw, 9.5rem);
+    font-weight: 900;
+    line-height: 0.86;
+    letter-spacing: -0.045em;
+    text-transform: uppercase;
+    text-shadow: 5px 6px 0 rgba(19, 35, 92, 0.14);
+}
+.lp-hero h1 span { display: block; }
+/* Второе слово — градиентом по тексту, как на странице VPN. */
+.lp-grad {
+    background: linear-gradient(90deg, var(--brand-deep), var(--brand) 55%, var(--brand-bright));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.lp-lead {
+    max-width: 34rem;
+    margin-top: 30px;
+    font-size: clamp(15px, 1.7vw, 19px);
+    line-height: 1.6;
+    font-weight: 500;
+    color: var(--ink-soft);
+}
+.lp-lead b { color: var(--ink); font-weight: 800; }
+.lp-lead-mid { margin-left: auto; margin-right: auto; text-align: center; }
+
+.lp-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 34px;
+}
+.lp-final .lp-cta { justify-content: center; }
+.lp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 56px;
+    padding: 0 28px;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 800;
+    text-decoration: none;
+    color: var(--ink);
+    background: transparent;
+    transition: background 0.16s, color 0.16s, transform 0.16s;
+}
+.lp-btn:hover { background: var(--ink); color: var(--paper); }
+/* Лёгкий наклон кнопок — приём с той же страницы VPN, он оживляет ряд. */
+.lp-btn-a { transform: rotate(-2deg); }
+.lp-btn-a:hover { transform: rotate(-2deg) translateY(-3px); }
+.lp-btn-b { transform: rotate(1deg); }
+.lp-btn-b:hover { transform: rotate(1deg) translateY(-3px); }
+
+/* ---------- Бегущая лента ---------- */
+
+.lp-band {
+    position: relative;
+    z-index: 10;
+    margin: 44px 0;
+    overflow: hidden;
+    transform: rotate(-3deg) scale(1.06);
+    background: var(--brand-deep);
+    border-top: 3px solid var(--aqua);
+    border-bottom: 3px solid var(--aqua);
+    padding: 13px 0;
+}
+.lp-band-run {
+    display: flex;
+    width: max-content;
+    animation: lp-run 38s linear infinite;
+}
+.lp-band-group { display: flex; flex-shrink: 0; align-items: center; }
+.lp-band-group span {
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--cream);
+}
+.lp-band-group i { margin-left: 24px; font-style: normal; font-size: 9px; color: var(--aqua); }
+@keyframes lp-run {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-50%, 0, 0); }
+}
+
+/* ---------- Секции ---------- */
+
+.lp-section {
+    position: relative;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 64px 20px;
+}
+.lp-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+}
+.lp-eyebrow-line {
+    width: 32px;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(43, 87, 232, 0.7), transparent);
+}
+.lp-title {
+    font-family: 'Unbounded', 'Onest', sans-serif;
+    font-size: clamp(1.9rem, 5vw, 3.2rem);
+    font-weight: 900;
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    margin-bottom: 26px;
+}
+
+/* ---------- Кадры ---------- */
+
+.lp-shots {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 6px 0 14px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+}
+.lp-shots::-webkit-scrollbar { display: none; }
+.lp-shot {
+    flex: 0 0 auto;
+    width: 218px;
+    margin: 0;
+    scroll-snap-align: center;
+}
+/* Жёсткая тень вместо мягкой: она и есть подпись этого стиля. */
+.lp-shot-frame {
+    border: 2px solid var(--ink);
+    border-radius: 26px;
+    overflow: hidden;
+    background: var(--paper);
+    box-shadow: 8px 8px 0 0 var(--brand-deep);
+}
+.lp-shot-frame img { display: block; width: 100%; height: auto; }
+.lp-shot figcaption {
+    margin-top: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-align: center;
+}
+.lp-wide {
+    display: flex;
+    flex-direction: column;
+    gap: 34px;
+    margin-top: 10px;
+}
+.lp-shot-wide { width: 100%; }
+.lp-shot-wide .lp-shot-frame { border-radius: 16px; box-shadow: 10px 10px 0 0 var(--brand-deep); }
+
+/* ---------- Карточки возможностей ---------- */
+
+.lp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+.lp-card {
+    padding: 24px;
+    border: 2px solid var(--ink);
+    border-radius: 22px;
+    background: var(--paper);
+    box-shadow: 6px 6px 0 0 var(--brand-deep);
+    transition: transform 0.16s, box-shadow 0.16s;
+}
+.lp-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 8px 8px 0 0 var(--brand-deep);
+}
+.lp-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.lp-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 2px solid var(--ink);
+    border-radius: 13px;
+    background: rgba(43, 87, 232, 0.12);
+    color: var(--brand-deep);
+}
+.lp-card-icon svg { width: 22px; height: 22px; }
+.lp-card-n {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--muted-2);
+}
+.lp-card h3 {
+    font-family: 'Unbounded', 'Onest', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 9px;
+}
+.lp-card p { font-size: 14px; line-height: 1.55; color: var(--ink-soft); }
+
+/* ---------- Загрузка сборок ---------- */
+
+.lp-get {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    margin-top: 34px;
+}
+.lp-get-card {
+    padding: 26px 24px 24px;
+    border: 2px solid var(--ink);
+    border-radius: 22px;
+    background: var(--paper);
+    box-shadow: 6px 6px 0 0 var(--brand-deep);
+    transition: transform 0.16s, box-shadow 0.16s;
+}
+.lp-get-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 8px 8px 0 0 var(--brand-deep);
+}
+.lp-get-icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    margin-bottom: 16px;
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    background: var(--cream);
+    color: var(--brand);
+}
+.lp-get-icon svg { width: 24px; height: 24px; }
+.lp-get-card h3 {
+    font-family: 'Unbounded', 'Onest', sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+}
+.lp-get-card > p {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 20px;
+}
+.lp-get-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 18px;
+}
+/* Кнопки внутри карточки не наклоняем: наклон хорош для одиночного призыва на
+   первом экране, а в ряду одинаковых карточек он читается как перекос вёрстки. */
+.lp-get-links .lp-btn,
+.lp-get-links .lp-btn:hover { transform: none; }
+.lp-get-links .lp-btn { height: 50px; padding: 0 22px; }
+/* Вес файла — рядом с кнопкой, а не в тексте: это то, что решают взглядом. */
+.lp-get-links .lp-btn i {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    opacity: 0.62;
+}
+.lp-get-alt {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 2px solid rgba(20, 22, 31, 0.2);
+    padding-bottom: 1px;
+}
+.lp-get-alt:hover { color: var(--ink); border-bottom-color: var(--ink); }
+.lp-get-note {
+    max-width: 680px;
+    margin: 26px auto 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--muted);
+    text-align: center;
+}
+/* Третья кнопка в ряду призыва — свой наклон, чтобы ряд не выглядел строем. */
+.lp-btn-c { transform: rotate(-1deg); }
+.lp-btn-c:hover { transform: rotate(-1deg) translateY(-3px); }
+
+@media (min-width: 768px) {
+    .lp-get { grid-template-columns: 1fr 1fr; gap: 22px; }
+}
+
+/* ---------- Финал и подвал ---------- */
+
+.lp-final {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 40px 20px 72px;
+    text-align: center;
+}
+.lp-foot {
+    position: relative;
+    z-index: 10;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 22px 20px 40px;
+    border-top: 2px solid rgba(20, 22, 31, 0.14);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--muted-2);
+}
+.lp-foot a { color: var(--muted); text-decoration: none; }
+.lp-foot a:hover { color: var(--ink); }
+
+@media (min-width: 768px) {
+    .lp-glyph { display: block; }
+    .lp-hero { padding-top: 168px; padding-bottom: 72px; }
+    .lp-section { padding: 88px 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .lp-band-run, .lp-glow i { animation: none; }
+}
+
+/* ===================== РАДИОВЕЩАНИЕ ===================== */
+
+/* Вместо полосы перемотки у эфира — подпись с горящей точкой. Занимает то же
+   место, поэтому кнопки под ней не прыгают при переходе с трека на станцию. */
+.np-live {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 38px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+.np-live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--danger);
+    animation: live-pulse 2s ease-in-out infinite;
+}
+@keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+}
+/* Поле поиска станций стоит сразу под заголовком — лишний отступ снизу тут
+   разрывает страницу надвое. */
+.radio-search { margin-bottom: 16px; }
+
+/* ===================== ТЕКСТ ПЕСНИ ===================== */
+
+/* Сцена под текстом ведёт себя иначе, чем под обложкой: обложка облегается
+   по размеру, а тексту нужна вся доступная высота, иначе он ужимается в
+   несколько строк и прокрутка становится бессмысленной. */
+.np-stage.is-lyrics {
+    align-items: stretch;
+    align-self: stretch;
+    width: 100%;
+}
+.lyrics-box {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    /* Ровно по высоте сцены и не больше. Без этого блок разрастался по
+       содержимому и наезжал на кнопки плеера. */
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /*
+     * Поля сверху и снизу — чтобы активная строка вставала в середину даже в
+     * самом начале и в самом конце песни: без них первая и последняя строки
+     * прилипали бы к краю.
+     *
+     * Единицы именно высоты экрана, а не проценты. Процентный отступ в CSS
+     * считается от ШИРИНЫ родителя всегда, даже сверху и снизу: на телефоне
+     * 40% давали безобидные 160 px, а на широком мониторе — 774, и текст
+     * уезжал на всю страницу поверх кнопок.
+     */
+    padding: 28vh 4px;
+    /* Палец ведут вертикально; без этого жест перехватывает карусель и
+       вместо прокрутки текста листаются экраны. */
+    touch-action: pan-y;
+}
+.lyrics-box::-webkit-scrollbar { display: none; }
+.lyrics-empty {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+}
+/* Строка — кнопка: тап перематывает на неё. Выглядеть при этом должна
+   обычным текстом. */
+.lyrics-line {
+    display: block;
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 10px;
+    text-align: left;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.32;
+    /* Приглушённый уровень: строки, которые ещё не звучали, не должны
+       спорить за внимание с текущей. */
+    color: var(--faint);
+    /* Переход по цвету, а не мгновенная смена: подсветка «перетекает» со
+       строки на строку и не мигает. */
+    transition: color 0.25s ease, opacity 0.25s ease;
+}
+/* Спетое приглушается СИЛЬНЕЕ, чем ещё не спетое: читают вперёд, и строки
+   впереди должны быть разборчивее тех, что уже позади. Заодно видно, где мы
+   в песне, а глаз всё равно тянется к активной строке. */
+.lyrics-line.past { color: rgba(255, 255, 255, 0.26); }
+.lyrics-line.active {
+    color: var(--text);
+    /* Подложка вместо жирности: менять начертание на активной строке значит
+       менять её ширину — текст дёргался бы при каждом переходе, а строки
+       переползали бы с места на место. */
+    background: rgba(255, 255, 255, 0.08);
+}
+/* Текст без меток времени подсвечивать нечем — показываем ровным списком. */
+.lyrics-line.plain {
+    color: var(--muted);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: default;
+}
+/* На широком экране строки не должны растягиваться во всю ширину: читать
+   длинные строки тяжело, а плеер там куда шире телефона. */
+@media (min-width: 1024px) {
+    .lyrics-box { max-width: 560px; margin: 0 auto; }
+    .lyrics-line { font-size: 21px; }
+}
+/* ===================== ПОЛОСА ЗАГОЛОВКА (приложение для Windows) ===================== */
+
+/*
+ * Показывается только в приложении: класс на <html> ставит код при запуске,
+ * если рядом оказался мост в систему (см. desktop.ts). На сайте этих правил
+ * нет вовсе, поэтому вёрстка там не сдвигается ни на пиксель.
+ */
+.has-titlebar {
+    --titlebar-h: 36px;
+}
+.titlebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--titlebar-h);
+    z-index: 1200;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    /* Полоса — то место, за которое окно таскают. Без этого своя полоса
+       заголовка означала бы окно, которое нельзя сдвинуть. */
+    -webkit-app-region: drag;
+    -webkit-user-select: none;
+    user-select: none;
+}
+/*
+ * Название трека стоит по центру ОКНА.
+ *
+ * Сначала полоса делилась на шесть равных колонок внутри свободной области —
+ * то есть окна за вычетом кнопок «свернуть / развернуть / закрыть», которые
+ * рисует сама Windows справа поверх страницы. Середина такой сетки центром
+ * окна не является: на окне в 1280 точек кнопки занимают около 136, и текст
+ * оказывался левее настоящего центра примерно на 60 точек — это видно
+ * глазом.
+ *
+ * Теперь по краям стоят две распорки с одинаковым правилом роста, поэтому
+ * они всегда одной ширины, а название между ними попадает ровно в центр
+ * окна. Правая распорка при этом не уже полосы системных кнопок: когда окно
+ * сузится настолько, что честной середины не остаётся, название сдвинется
+ * влево, но под кнопки не заедет.
+ */
+.titlebar-grid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    /* Отступ обязательно с ОБЕИХ сторон. С отступом только слева содержимое
+       смещалось вправо на всю его величину, и название трека вставало мимо
+       центра — ровно и заметно на любой ширине окна. */
+    padding: 0 14px;
+    /* Зазор задаём здесь, а не отступом внутри левого блока. Внутренний
+       отступ входит в размер блока и не даёт ему сжаться меньше себя: при
+       равном росте обеих распорок левая оставалась ровно на этот отступ
+       шире, и название смещалось на его половину. Зазор же ложится между
+       всеми тремя одинаково и симметрию не рушит. */
+    gap: 12px;
+}
+.titlebar-brand {
+    /* Одинаковая основа с правой распоркой — от неё и берётся симметрия. */
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.titlebar-now {
+    flex: 0 1 auto;
+    min-width: 0;
+    /* Не больше половины полосы: очень длинное название иначе распихало бы
+       распорки и утащило само себя из центра. */
+    max-width: 46%;
+    display: flex;
+    justify-content: center;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+}
+/* Правая распорка: пустая, но по ширине не меньше системных кнопок. */
+.titlebar-spacer {
+    flex: 1 1 0;
+    min-width: calc(100% - env(titlebar-area-width, 100%));
+}
+/* Бегущая строка внутри центра: своей ширины у неё нет, поэтому задаём. */
+.titlebar-now .marquee { max-width: 100%; }
+/* Строка, которая помещается, должна стоять по центру, а не липнуть влево. */
+.titlebar-now .marquee:not(.is-animated) .marquee-inner { justify-content: center; }
+
+/* Содержимое приложения начинается под полосой. */
+.has-titlebar body { padding-top: var(--titlebar-h); }
+.has-titlebar .app-shell { min-height: calc(100vh - var(--titlebar-h)); }
+.has-titlebar .desktop-shell { height: calc(100vh - var(--titlebar-h)); }
+/* Полноэкранный плеер тоже не залезает на полосу — иначе окно нельзя было бы
+   таскать, пока он открыт. */
+.has-titlebar .now-playing { top: var(--titlebar-h); }
+::-webkit-scrollbar { width: 0; height: 0; }

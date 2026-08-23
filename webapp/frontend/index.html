@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Масштабирование щипком не запрещаем: жёсткий maximum-scale=1 и
+      user-scalable=no — прямое нарушение доступности, из-за него человек с
+      плохим зрением не может увеличить текст. Двойной тап и жесты внутри
+      приложения по-прежнему гасятся кодом (см. main.tsx), так что случайных
+      зумов при перелистывании не будет.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Цвет полосок браузера вокруг страницы. Их видно в основном на
+         телефоне, где фон серый, — поэтому значения два, по той же границе,
+         что и у палитры в styles.css. -->
+    <meta name="theme-color" content="#141414" media="(max-width: 1023px)" />
+    <meta name="theme-color" content="#0a0a0c" media="(min-width: 1024px)" />
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups" />
+    <!--
+      defer обязателен. Скрипт Telegram весит 117 КБ, и без него разбор
+      страницы вставал на всё время загрузки — почти две секунды до первой
+      отрисовки на телефоне, причём и у тех, кто открыл сайт в обычном
+      браузере, где этот скрипт не нужен вовсе.
+
+      Порядок при этом не ломается: отложенные обычные скрипты и модули
+      выполняются после разбора страницы в порядке объявления, поэтому
+      Telegram.WebApp по-прежнему готов раньше, чем стартует приложение.
+    -->
+    <script defer src="/tg-webapp.js"></script>
+    <title>Vexus Music</title>
+    <meta
+      name="description"
+      content="Vexus Music — музыка без ограничений: поиск треков, плейлисты, радио по вкусу, клипы и эквалайзер. Работает в браузере, в Telegram и приложением."
+    />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!--
+      Начертание Regular нужно для самого первого экрана, и браузер узнаёт о
+      нём только дойдя до @font-face внутри .css — то есть слишком поздно.
+      Подсказка отправляет запрос сразу. Остальные начертания намеренно не
+      трогаем: они нужны позже и на первую отрисовку не влияют.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/Montserrat-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <!-- Значок вкладки подстраивается под тему системы: на тёмной он белый,
+         на светлой — чёрный. Ставится сразу здесь, до загрузки приложения,
+         иначе в момент открытия мелькал бы значок не того цвета.
+         Через CSS это не сделать, а media-запрос внутри SVG-иконки понимают
+         не все браузеры — поэтому подменяем ссылку скриптом. -->
+    <link id="favicon" rel="icon" type="image/png" href="/favicon-light.png" />
+    <script>
+      (function () {
+        var link = document.getElementById('favicon')
+        var dark = window.matchMedia('(prefers-color-scheme: dark)')
+        var apply = function () {
+          link.href = dark.matches ? '/favicon-dark.png' : '/favicon-light.png'
+        }
+        apply()
+        // Тему меняют на ходу — значок должен переключаться вместе с ней.
+        dark.addEventListener('change', apply)
+      })()
+    </script>
+    <!-- iOS манифест не читает: иконку ярлыка он берёт отсюда. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Vexus" />
+    <!--
+      Критическая разметка — прямо в странице, а не только в отдельном .css.
+      Основной стиль подключается файлом, и пока он едет, первый кадр может
+      быть отрисован без него: карточки перестают быть фиксированной ширины и
+      расползаются по содержимому (одна карточка на весь экран), а потом резко
+      встают на место. Этих правил хватает, чтобы первая же отрисовка была
+      правильной; всё остальное приезжает обычным файлом.
+    -->
+    <style>
+      /* Те же значения, что в styles.css, — правь их парой, иначе первый
+         кадр будет другого цвета, чем всё остальное приложение. Телефонный
+         фон обязателен именно тут: без него первая отрисовка была бы почти
+         чёрной и на глазах перекрашивалась в серый, когда доедет .css. */
+      :root { --bg: #0a0a0c; --surface-2: #1a1a1c; }
+      @media (max-width: 1023px) {
+        :root { --bg: #141414; --surface-2: #232323; }
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: 'Montserrat', -apple-system, sans-serif;
+        color: rgba(255, 255, 255, 0.92);
+        background: var(--bg);
+        overflow-x: hidden;
+      }
+      .app-shell { width: 100%; max-width: 640px; margin: 0 auto; min-height: 100vh; }
+      .page { padding: 16px 16px 140px; }
+      .carousel {
+        display: flex;
+        justify-content: flex-start;
+        gap: 14px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+      .card-tile {
+        flex: 0 0 auto;
+        width: 140px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        text-align: left;
+        background: none;
+        border: none;
+        color: inherit;
+      }
+      /* display:block критичен: картинка инлайновая, а <button> центрирует
+         содержимое — без этого обложки встают по центру, а не слева. */
+      .cover {
+        display: block;
+        object-fit: cover;
+        aspect-ratio: 1 / 1;
+        background: var(--surface-2);
+        flex-shrink: 0;
+      }
+      .track-row { display: flex; align-items: center; gap: 2px; }
+      .track-row-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        text-align: left;
+        background: none;
+        border: none;
+        color: inherit;
+      }
+      .track-row-info { flex: 1 1 auto; min-width: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

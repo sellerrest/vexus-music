@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <!--
+                Ссылки vexmus://. По ним система открывает именно нас, и
+                приложение получает адрес целиком — из него берётся, какой
+                плейлист показать.
+
+                launchMode="singleTask" выше уже стоит, и это важно: без него
+                каждая ссылка открывала бы ВТОРУЮ копию приложения поверх
+                первой, со своим плеером.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="vexmus" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        Разрешения для уведомления с музыкой.
+
+        FOREGROUND_SERVICE_MEDIA_PLAYBACK обязателен с Android 14: служба
+        переднего плана должна объявить, ЗАЧЕМ она работает, иначе система
+        просто не даёт её запустить и приложение падает при первом же
+        воспроизведении. Сам плагин объявляет только общий FOREGROUND_SERVICE,
+        которого хватало до Android 14.
+
+        POST_NOTIFICATIONS нужен с Android 13 и спрашивается у пользователя во
+        время работы (см. MainActivity): без согласия служба запустится, но
+        карточку в шторке никто не увидит.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+</manifest>
