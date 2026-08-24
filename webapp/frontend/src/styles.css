@@ -956,10 +956,43 @@ img { display: block; }
 .flow-banner-shuffle:disabled:hover { background: rgba(255, 255, 255, 0.09); }
 
 /* Узкое окно на компьютере: текст перестаёт помещаться рядом с рисунком. */
-@media (max-width: 1180px) {
+@media (min-width: 761px) and (max-width: 1180px) {
     .flow-banner { min-height: 244px; }
     .flow-banner-text { max-width: 58%; padding: 30px 32px; }
     .flow-banner-art { width: 56%; right: -8%; }
+}
+
+/*
+ * Телефон: рядом текст и рисунок не помещаются, поэтому они встают друг над
+ * другом — знак сверху, подпись и кнопки под ним. Высота нарочно скромная:
+ * шапка не должна вытеснять сами треки за нижний край экрана.
+ */
+@media (max-width: 760px) {
+    .flow-banner {
+        min-height: 0;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding-top: 8px;
+        border-radius: 0 0 20px 20px;
+    }
+    .flow-banner-art {
+        position: static;
+        transform: none;
+        width: 116%;
+        max-width: none;
+        /* Знак шире экрана и обрезается по краям — так он читается как часть
+           полотна, а не как картинка, положенная в рамку. */
+        margin: -14px -8% -18px;
+    }
+    .flow-banner-text {
+        max-width: 100%;
+        padding: 0 20px 24px;
+        text-align: center;
+    }
+    .flow-banner-text h1 { font-size: 34px; margin-bottom: 10px; }
+    .flow-banner-text p { font-size: 13.5px; margin-bottom: 18px; }
+    .flow-banner-text p br { display: none; }
+    .flow-banner-actions { justify-content: center; }
 }
 
 /* ---------- Окно обновления ---------- */

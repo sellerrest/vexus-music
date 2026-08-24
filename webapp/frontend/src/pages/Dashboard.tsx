@@ -244,9 +244,7 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
       loadPage={loadRadio}
       countable={false}
       display
-      // Широкая шапка — только на компьютере: на телефоне такая лента заняла
-      // бы весь экран, и до самой музыки пришлось бы доскроллить.
-      banner={isDesktop ? (props) => <FlowBanner {...props} /> : undefined}
+      banner={(props) => <FlowBanner {...props} />}
     />
   )
 
