@@ -18,7 +18,6 @@ import Sidebar from '../components/Sidebar'
 import { insideTelegram, useTelegramBack } from '../hooks/useTelegramBack'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import AccountPage from './AccountPage'
-import EqualizerPage from './EqualizerPage'
 import BrowsePage from './BrowsePage'
 import FeedPage from './FeedPage'
 import LibraryPage from './LibraryPage'
@@ -54,7 +53,6 @@ type OpenView =
   | { kind: 'trackRadio'; trackId: number; title: string; heading?: string }
   | { kind: 'category'; slug: string; title: string }
   | { kind: 'account' }
-  | { kind: 'equalizer' }
 
 function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
   const [tab, setTab] = useState<TabKey>('browse')
@@ -238,8 +236,6 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
         )
       case 'account':
         return <AccountPage key="account" token={token} />
-      case 'equalizer':
-        return <EqualizerPage key="equalizer" />
       case 'category':
         return (
           <FeedPage
@@ -295,7 +291,6 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
           token={token}
           onOpenPlaylist={openPlaylist}
           onOpenAccount={() => open({ kind: 'account' })}
-          onOpenEqualizer={() => open({ kind: 'equalizer' })}
           onLogout={onLogout}
         />
       )
@@ -391,7 +386,6 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
           token={token}
           onOpenPlaylist={openPlaylist}
           onOpenAccount={() => open({ kind: 'account' })}
-          onOpenEqualizer={() => open({ kind: 'equalizer' })}
           onLogout={onLogout}
         />,
       )}

@@ -4,7 +4,7 @@ import { loadToken, noteSessionEnd, saveToken, storageKind } from '../session'
 import axios from 'axios'
 import {
   ChevronRight, Heart, Headphones, KeyRound, LogOut,
-  MessageCircleMore, MessageSquareText, SlidersHorizontal, Smartphone, Trash2,
+  MessageCircleMore, MessageSquareText, Smartphone, Trash2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import ProfileAvatar from '../components/ProfileAvatar'
@@ -17,7 +17,6 @@ interface Props {
   token: string
   onOpenPlaylist: (id: number | 'favorites') => void
   onOpenAccount: () => void
-  onOpenEqualizer: () => void
   onLogout: () => void
 }
 
@@ -45,7 +44,7 @@ type Row = {
   confirm?: string
 }
 
-function ProfilePage({ token, onOpenPlaylist, onOpenAccount, onOpenEqualizer, onLogout }: Props) {
+function ProfilePage({ token, onOpenPlaylist, onOpenAccount, onLogout }: Props) {
   // Данные берём с сервера, а не из window.Telegram: при входе из браузера
   // этого объекта нет вовсе, и шапка оставалась пустой. Сервер помнит их с
   // последнего захода из мессенджера.
@@ -114,7 +113,6 @@ function ProfilePage({ token, onOpenPlaylist, onOpenAccount, onOpenEqualizer, on
           color: 'pink',
           onClick: () => onOpenPlaylist('favorites'),
         },
-        { label: 'Эквалайзер', icon: SlidersHorizontal, color: 'purple', onClick: onOpenEqualizer },
       ],
     },
     {

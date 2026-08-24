@@ -8,7 +8,6 @@ import {
   setPlaybackState as setMediaPlaybackState,
   setPositionState as setMediaPositionState,
 } from '../mediaSession'
-import { EQ_BANDS, loadEqGains, saveEqGains } from '../equalizer'
 import type { Track } from '../types'
 
 export type RepeatMode = 'off' | 'all' | 'one'
@@ -33,9 +32,6 @@ interface PlayerContextValue {
    *  сама собой, а между запусками — через localStorage. */
   volume: number
   setVolume: (value: number) => void
-  /** Усиление по полосам эквалайзера, дБ. Работает всегда. */
-  eqGains: number[]
-  setEqGains: (gains: number[]) => void
   /** На iOS громкость <audio> только для чтения — регулятор там показывать
    *  нельзя, он заведомо ни на что не повлияет. */
   volumeSupported: boolean
@@ -69,57 +65,6 @@ const PREPARE_LABELS: Record<string, string> = {
   processing: 'Обрабатываю…',
   uploading: 'Загружаю…',
 }
-
-/*
- * Память о том, что источник звука не отдаёт заголовки CORS.
- *
- * Хранится между запусками не ради удобства: без этого каждый первый трек в
- * сессии сначала уходил бы в ошибку, элемент пересоздавался бы, и всё это
- * пользователь слышал бы как заминку перед началом. Один раз выяснили —
- * дальше сразу играем обычным способом.
- *
- * Отметка со сроком, а не просто флаг: настройки CDN меняются, и когда
- * заголовок появится, эквалайзер должен вернуться сам, без переустановки
- * приложения и чистки данных.
- */
-const CORS_BLOCKED_KEY = 'cors_blocked_until'
-const CORS_RETRY_HOURS = 24
-
-function loadCorsBlocked(): boolean {
-  try {
-    const until = Number(localStorage.getItem(CORS_BLOCKED_KEY))
-    return Number.isFinite(until) && until > Date.now()
-  } catch {
-    // Приватный режим и запрет на хранилище — не повод падать при старте.
-    return false
-  }
-}
-
-function rememberCorsBlocked(): void {
-  try {
-    localStorage.setItem(
-      CORS_BLOCKED_KEY,
-      String(Date.now() + CORS_RETRY_HOURS * 3600 * 1000),
-    )
-  } catch {
-    // Не записалось — просто проверим заново в следующий раз.
-  }
-}
-
-/**
- * Короткая метка происхождения страницы.
- *
- * Нужна как часть адреса файла, чтобы у сайта, приложения для Windows и
- * приложения для Android были РАЗНЫЕ записи в кэше CDN (см. sourceUrl).
- * Само значение неважно — важно лишь, что для разных origin оно разное, а
- * для одного и того же постоянное между запусками.
- */
-const ORIGIN_TAG: string = (() => {
-  const origin = typeof location !== 'undefined' ? location.origin : ''
-  let hash = 0
-  for (let i = 0; i < origin.length; i++) hash = (hash * 31 + origin.charCodeAt(i)) | 0
-  return Math.abs(hash).toString(36).slice(0, 8) || '1'
-})()
 
 function savedVolume(): number {
   const raw = localStorage.getItem(VOLUME_KEY)
@@ -160,30 +105,6 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
   const [repeat, setRepeat] = useState<RepeatMode>('off')
   const [volume, setVolumeState] = useState(savedVolume)
   const [volumeSupported, setVolumeSupported] = useState(false)
-  const [eqGains, setEqGainsState] = useState<number[]>(loadEqGains)
-  // Узлы Web Audio держим в ref: пересоздавать их на каждый рендер нельзя —
-  // источник из <audio> можно создать ровно один раз за время жизни элемента.
-  const audioGraph = useRef<{ ctx: AudioContext; filters: BiquadFilterNode[] } | null>(null)
-  // Источник отказался отдавать звук в режиме CORS. Тогда эквалайзер
-  // невозможен в принципе: Web Audio выдаёт тишину для источника, который не
-  // разрешил себя читать. Переключаемся на обычное воспроизведение и больше
-  // не пробуем — до следующей проверки (см. rememberCorsBlocked).
-  const corsBlocked = useRef(loadCorsBlocked())
-  /*
-   * Счётчик пересозданий <audio>.
-   *
-   * Менять его — единственный способ вернуть звук после того, как элемент уже
-   * отдали в createMediaElementSource: эта привязка вечная, и снять её нельзя
-   * ни удалением crossOrigin, ни новым src. React по смене key выбрасывает
-   * старый элемент и делает новый, ни с каким графом не связанный.
-   */
-  const [audioKey, setAudioKey] = useState(0)
-  /** Что доиграть на новом элементе после пересоздания. */
-  const pendingResume = useRef<{ src: string; time: number; play: boolean } | null>(null)
-  // Зеркало настроек в ref: их читают обработчики, которые не должны
-  // пересоздаваться на каждое движение ползунка.
-  const eqGainsRef = useRef(eqGains)
-
   // Гонка: пока качается трек A, юзер жмёт трек B. Когда A докачается, он не
   // должен перебить B — сверяем «поколение» запроса перед тем, как играть.
   const prepareGeneration = useRef(0)
@@ -191,38 +112,6 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
   const headers = { Authorization: `Bearer ${token}` }
   const currentTrack = order.length > 0 ? queue[order[orderPos]] ?? null : null
   const upNext = order.slice(orderPos + 1).map((i) => queue[i]).filter(Boolean)
-
-  /**
-   * Готовит элемент к новому источнику.
-   *
-   * crossOrigin обязателен, чтобы Web Audio вообще получил доступ к звуку:
-   * без него эквалайзер играл бы тишину. Ставить его нужно ДО присвоения
-   * src — иначе браузер уже начал загрузку в другом режиме.
-   */
-  const applyCrossOrigin = (audio: HTMLAudioElement) => {
-    if (corsBlocked.current) audio.removeAttribute('crossorigin')
-    else audio.crossOrigin = 'anonymous'
-  }
-
-  /**
-   * Ссылка на файл для текущего режима.
-   *
-   * CDN добавляет Access-Control-Allow-Origin, подставляя туда origin из
-   * запроса, но кэширует ответ БЕЗ учёта origin (Vary: Origin он объявляет,
-   * но не соблюдает). Из-за этого одна и та же ссылка отдаёт всем тот
-   * заголовок, который достался первому запросившему.
-   *
-   * Отсюда метка: в неё зашит origin, поэтому у сайта и у приложения ссылки
-   * разные, а значит и записи в кэше разные — каждый получает заголовок под
-   * себя. Раньше тут стояла постоянная «cors=1», общая для всех; она чинила
-   * кэш браузера (ответ без заголовка подставлялся в режим CORS и Web Audio
-   * играл тишину), но ровно ту же беду создавала в кэше CDN — сайт и
-   * приложение отбирали заголовок друг у друга.
-   */
-  const sourceUrl = (url: string): string => {
-    if (corsBlocked.current) return url
-    return url + (url.includes('?') ? '&' : '?') + `cors=${ORIGIN_TAG}`
-  }
 
   /** Ставит трек в <audio> и запускает; если он ещё не скачан — сначала качает. */
   const load = useCallback(
@@ -233,9 +122,7 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
 
       if (track.url) {
         setIsPreparing(false)
-        applyCrossOrigin(audio)
-        audio.src = sourceUrl(track.url)
-        ensureGraph()
+        audio.src = track.url
         audio.play().catch(() => {})
         return
       }
@@ -287,9 +174,7 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
         setQueue((prev) => prev.map((t) => (t.id === track.id ? { ...t, url, is_downloaded: true } : t)))
         setReadyIds((prev) => new Set(prev).add(track.id))
         setIsPreparing(false)
-        applyCrossOrigin(audio)
-        audio.src = sourceUrl(url)
-        ensureGraph()
+        audio.src = url
         audio.play().catch(() => {})
       } catch {
         // Сеть отвалилась или сервер ответил ошибкой — сообщаем только если
@@ -371,9 +256,6 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
     const audio = audioRef.current
     if (!audio || !audio.src) return
     if (audio.paused) {
-      // Контекст мог быть приостановлен браузером — поднимаем его тем же
-      // нажатием, которым человек включает музыку.
-      ensureGraph()
       audio.play().catch(() => {})
     } else audio.pause()
   }, [])
@@ -539,127 +421,6 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  /**
-   * Строит цепочку фильтров и следит, чтобы контекст был запущен.
-   *
-   * Порядок важен: createMediaElementSource НАВСЕГДА уводит звук элемента в
-   * граф. Если при этом контекст приостановлен (браузеры создают его именно
-   * таким, пока не было действия пользователя), звук пропадает совсем —
-   * ровно это и было: эквалайзер включался, и музыка замолкала до
-   * перезагрузки страницы. Поэтому после создания и перед каждым
-   * воспроизведением дёргаем resume().
-   */
-  const ensureGraph = useCallback((): boolean => {
-    // Главная защита от немого плеера: без работающего CORS привязка элемента
-    // к графу равносильна выключению звука, и отменить её потом нельзя.
-    if (corsBlocked.current) return false
-    if (audioGraph.current) {
-      if (audioGraph.current.ctx.state === 'suspended') {
-        audioGraph.current.ctx.resume().catch(() => {})
-      }
-      return true
-    }
-    const audio = audioRef.current
-    if (!audio) return false
-    try {
-      const Ctx = window.AudioContext || (window as any).webkitAudioContext
-      const ctx: AudioContext = new Ctx()
-      const source = ctx.createMediaElementSource(audio)
-      const filters = EQ_BANDS.map((frequency, index) => {
-        const filter = ctx.createBiquadFilter()
-        // Края спектра тянем полками, середину — колоколами: иначе самая
-        // низкая и самая высокая полосы почти не влияли бы на звук.
-        filter.type =
-          index === 0 ? 'lowshelf' : index === EQ_BANDS.length - 1 ? 'highshelf' : 'peaking'
-        filter.frequency.value = frequency
-        filter.Q.value = 1
-        filter.gain.value = eqGainsRef.current[index] ?? 0
-        return filter
-      })
-      // source -> f1 -> f2 -> ... -> выход
-      filters.reduce<AudioNode>((prev, filter) => {
-        prev.connect(filter)
-        return filter
-      }, source).connect(ctx.destination)
-      audioGraph.current = { ctx, filters }
-      if (ctx.state === 'suspended') ctx.resume().catch(() => {})
-      return true
-    } catch {
-      return false
-    }
-  }, [])
-
-  const setEqGains = useCallback((gains: number[]) => {
-    eqGainsRef.current = gains
-    setEqGainsState(gains)
-    saveEqGains(gains)
-    const graph = audioGraph.current
-    if (!graph) return
-    graph.filters.forEach((filter, i) => {
-      // setTargetAtTime вместо мгновенного присваивания: скачок усиления
-      // слышен щелчком, а при перетаскивании ползунка их были бы десятки.
-      filter.gain.setTargetAtTime(gains[i] ?? 0, graph.ctx.currentTime, 0.02)
-    })
-  }, [])
-
-  /**
-   * Источник не загрузился. Самая вероятная причина — режим CORS: элемент с
-   * crossOrigin не примет ответ без заголовка Access-Control-Allow-Origin, а
-   * наш CDN отдаёт его не для всякого домена. Тогда откатываемся к обычной
-   * загрузке: музыка важнее эквалайзера.
-   */
-  const handleAudioError = useCallback(() => {
-    const audio = audioRef.current
-    if (!audio || !audio.src || corsBlocked.current || !audio.crossOrigin) return
-    corsBlocked.current = true
-    rememberCorsBlocked()
-    // Параметр режима тоже убираем: он был нужен только чтобы обойти кэш
-    // ради CORS, а раз CORS не вышел — пусть играет обычная ссылка.
-    const src = audio.src.replace(/[?&]cors=[^&]*/, '')
-
-    if (audioGraph.current) {
-      /*
-       * Граф уже прицеплен — и это тупик: снятие crossOrigin вернёт загрузку
-       * файла, но звук всё равно пойдёт через createMediaElementSource, а тот
-       * для источника без разрешения CORS по стандарту выдаёт тишину. Именно
-       * поэтому раньше вместе с сообщением про эквалайзер пропадал и звук.
-       * Спасает только новый элемент.
-       */
-      pendingResume.current = { src, time: audio.currentTime || 0, play: true }
-      audio.pause()
-      audioGraph.current.ctx.close().catch(() => {})
-      audioGraph.current = null
-      setAudioKey((n) => n + 1)
-    } else {
-      audio.removeAttribute('crossorigin')
-      audio.src = src
-      audio.play().catch(() => {})
-    }
-    showToast('Эквалайзер недоступен для этого источника')
-  }, [])
-
-  /** Доигрывает трек на только что созданном элементе. */
-  useEffect(() => {
-    const pending = pendingResume.current
-    if (!pending) return
-    pendingResume.current = null
-    const audio = audioRef.current
-    if (!audio) return
-    audio.removeAttribute('crossorigin')
-    audio.volume = volumeSupported ? volume : 1
-    audio.src = pending.src
-    // Перемотку ставим только когда длительность уже известна: до этого
-    // момента присваивание currentTime молча теряется.
-    const seek = () => {
-      if (pending.time > 0) audio.currentTime = pending.time
-      audio.removeEventListener('loadedmetadata', seek)
-    }
-    audio.addEventListener('loadedmetadata', seek)
-    if (pending.play) audio.play().catch(() => {})
-    // Зависимость только от ключа: эффект — реакция на пересоздание элемента.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioKey])
-
   const setVolume = useCallback((value: number) => {
     const clamped = Math.min(1, Math.max(0, value))
     setVolumeState(clamped)
@@ -685,8 +446,6 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
         volume,
         setVolume,
         volumeSupported,
-        eqGains,
-        setEqGains,
         playQueue,
         toggle,
         next,
@@ -702,14 +461,13 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
     >
       {children}
       <audio
-        key={audioKey}
         ref={audioRef}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onEnded={handleEnded}
         onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)}
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-        onError={handleAudioError}
+        onError={() => showToast('Не удалось воспроизвести трек')}
         preload="metadata"
       />
     </PlayerContext.Provider>
