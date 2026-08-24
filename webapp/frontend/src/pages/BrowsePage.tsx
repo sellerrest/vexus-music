@@ -1,19 +1,38 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { motion } from 'framer-motion'
-import { Compass, Disc3, Heart, Radio, Search, X } from 'lucide-react'
+import { Compass, Disc3, Search, X } from 'lucide-react'
 import Carousel, { CardTile } from '../components/Carousel'
+import ProfileAvatar from '../components/ProfileAvatar'
 import { CarouselSkeleton } from '../components/Skeleton'
 import SearchResults from '../components/SearchResults'
 import TrackRow from '../components/TrackRow'
 import { usePlayer } from '../context/PlayerContext'
 import { useNav } from '../context/NavContext'
 import { useIsDesktop } from '../hooks/useIsDesktop'
+import { typo } from '../typography'
 import type { Playlist, Track } from '../types'
 
 interface Props {
   token: string
-  onOpenPlaylist: (id: number | 'favorites') => void
+  /** Аватарка для кнопки настроек. На широком экране не используется. */
+  avatarUrl?: string | null
+  onOpenSettings?: () => void
+}
+
+/**
+ * Приветствие по времени суток.
+ *
+ * Границы взяты по тому, как говорят, а не по календарным четвертям: «доброе
+ * утро» в четыре часа звучало бы издевательством, поэтому ночь тянется до
+ * пяти, а вечер начинается в шесть.
+ */
+function greeting(): string {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return 'Доброе утро'
+  if (hour < 18) return 'Добрый день'
+  if (hour < 23) return 'Добрый вечер'
+  return 'Доброй ночи'
 }
 
 export interface TopArtist {
@@ -47,7 +66,7 @@ const EMPTY_HOME: HomeData = {
  *  чем у крупных подборок сверху. */
 const SMALL_TILE = 104
 
-function BrowsePage({ token, onOpenPlaylist }: Props) {
+function BrowsePage({ token, avatarUrl, onOpenSettings }: Props) {
   const [data, setData] = useState<HomeData | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -60,7 +79,7 @@ function BrowsePage({ token, onOpenPlaylist }: Props) {
     if (currentTrack?.id === tracks[index]?.id) toggle()
     else playQueue(tracks, index)
   }
-  const { openRadio, openDiscovery, openArtistRadio, openCategory } = useNav()
+  const { openDiscovery, openArtistRadio, openCategory } = useNav()
   const isDesktop = useIsDesktop()
 
   const headers = { Authorization: `Bearer ${token}` }
@@ -80,11 +99,11 @@ function BrowsePage({ token, onOpenPlaylist }: Props) {
   return (
     <div className="page">
       <div className="browse-head">
-        {/* На широком экране поиск живёт в боковой панели — своя кнопка тут
-            была бы вторым таким же элементом на одном экране. */}
-        {isDesktop ? (
-          <h1 className="page-heading">Обзор</h1>
-        ) : searchOpen ? (
+        {/* Поиск подменяет собой всю шапку: строка должна занимать всю
+            ширину, а приветствие с аватаркой на это время не нужны. На
+            широком экране поиск живёт в боковой панели, поэтому подмены
+            там не бывает. */}
+        {!isDesktop && searchOpen ? (
           <motion.div
             className="search-island"
             initial={{ opacity: 0, scaleX: 0.85 }}
@@ -106,10 +125,28 @@ function BrowsePage({ token, onOpenPlaylist }: Props) {
           </motion.div>
         ) : (
           <>
-            <h1 className="page-heading">Обзор</h1>
-            <button type="button" className="np-icon-btn" onClick={() => setSearchOpen(true)} aria-label="Поиск">
-              <Search size={23} />
+            {/* Аватарка — она же вход в настройки. Отдельной кнопки-шестерёнки
+                нет намеренно: своё лицо человек находит взглядом быстрее
+                любого значка. */}
+            <button
+              type="button"
+              className="browse-avatar"
+              onClick={onOpenSettings}
+              aria-label="Настройки"
+            >
+              <ProfileAvatar src={avatarUrl ?? null} size={38} round ring={false} />
             </button>
+            <h1 className="page-heading browse-greeting">{typo(greeting())}</h1>
+            {!isDesktop && (
+              <button
+                type="button"
+                className="np-icon-btn"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Поиск"
+              >
+                <Search size={23} />
+              </button>
+            )}
           </>
         )}
       </div>
@@ -119,10 +156,6 @@ function BrowsePage({ token, onOpenPlaylist }: Props) {
       ) : !data ? (
         <>
           <section className="section">
-            <h2 className="section-title">Твоя музыка</h2>
-            <CarouselSkeleton />
-          </section>
-          <section className="section">
             <h2 className="section-title">Популярное</h2>
             <CarouselSkeleton />
           </section>
@@ -131,17 +164,8 @@ function BrowsePage({ token, onOpenPlaylist }: Props) {
         <>
           {/* «Для тебя» — одна строка на все персональные подборки: радио,
               открытие и «похоже на» по самым слушаемым исполнителям. */}
-          {(data.for_you.length > 0 || data.discovery.length > 0 || data.top_artists.length > 0) && (
+          {(data.discovery.length > 0 || data.top_artists.length > 0) && (
             <Carousel title="Для тебя">
-              {data.for_you.length > 0 && (
-                <CardTile
-                  icon={<Radio size={44} strokeWidth={1.5} />}
-                  gradient="radio"
-                  title="Радио"
-                  subtitle="Бесконечный поток"
-                  onClick={openRadio}
-                />
-              )}
               {data.discovery.length > 0 && (
                 <CardTile
                   icon={<Compass size={44} strokeWidth={1.5} />}
@@ -157,7 +181,7 @@ function BrowsePage({ token, onOpenPlaylist }: Props) {
                   cover={a.cover_url}
                   title={`Похоже на ${a.name}`}
                   subtitle="Подборка"
-                  onClick={() => openArtistRadio(a.seed_track_id, `Похоже на ${a.name}`)}
+                  onClick={() => openArtistRadio(a.seed_track_id, `Похоже на ${a.name}`, a.cover_url)}
                 />
               ))}
             </Carousel>
@@ -193,25 +217,6 @@ function BrowsePage({ token, onOpenPlaylist }: Props) {
             </Carousel>
           )}
 
-          <Carousel title="Твоя музыка">
-            <CardTile
-              icon={<Heart size={44} strokeWidth={1.5} fill="currentColor" />}
-              gradient="favorites"
-              title="Любимые треки"
-              subtitle="Плейлист"
-              onClick={() => onOpenPlaylist('favorites')}
-            />
-            {data.playlists.map((p) => (
-              <CardTile
-                key={p.id}
-                cover={p.cover_url}
-                covers={p.cover_urls}
-                title={p.name}
-                subtitle={`${p.track_count} треков`}
-                onClick={() => onOpenPlaylist(p.id)}
-              />
-            ))}
-          </Carousel>
 
           {data.popular.length > 0 && (
             <Carousel title="Популярное">

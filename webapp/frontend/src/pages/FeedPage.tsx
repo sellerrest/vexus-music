@@ -16,11 +16,25 @@ interface Props {
   token: string
   title: string
   subtitle?: string
+  /** Готовая обложка одной картинкой — старше значка. */
+  cover?: string | null
   /** Иконка на градиентной обложке — подборка выглядит как плейлист. */
   icon?: ReactNode
   gradient?: string
   /** Грузит очередную порцию. offset — сколько треков уже показано. */
   loadPage: (offset: number) => Promise<FeedPageResult>
+  /**
+   * Своя широкая шапка вместо обычной.
+   *
+   * Нужна «Потоку» на компьютере: у бесконечной ленты нет обложки, а счётчик
+   * треков у неё бессмыслен — она не кончается. Получает готовые обработчики
+   * запуска, чтобы кнопки внутри вели себя ровно как штатные.
+   */
+  banner?: (props: { onPlay: () => void; onShuffle: () => void; ready: boolean }) => ReactNode
+  /** Есть ли смысл считать треки. У бесконечного потока — нет. */
+  countable?: boolean
+  /** Крупный капс Unbounded в заголовке — см. CollectionHero. */
+  display?: boolean
 }
 
 const PAGE_SIZE = 30
@@ -31,7 +45,18 @@ const PAGE_SIZE = 30
  * Одна на все подборки: радио «Для тебя», «Открытие» и «Похожее на трек»
  * отличаются только источником данных, а поведение списка у них одинаковое.
  */
-function FeedPage({ token, title, subtitle, icon, gradient, loadPage }: Props) {
+function FeedPage({
+  token,
+  title,
+  subtitle,
+  cover,
+  icon,
+  gradient,
+  loadPage,
+  banner,
+  countable = true,
+  display = false,
+}: Props) {
   const [tracks, setTracks] = useState<Track[]>([])
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -98,15 +123,22 @@ function FeedPage({ token, title, subtitle, icon, gradient, loadPage }: Props) {
 
   return (
     <div className="page playlist-page">
-      <CollectionHero
-        title={title}
-        subtitle={subtitle}
-        tracks={loading && tracks.length === 0 ? null : tracks}
-        icon={icon}
-        gradient={gradient}
-        onPlay={() => start(false)}
-        onShuffle={() => start(true)}
-      />
+      {banner ? (
+        banner({ onPlay: () => start(false), onShuffle: () => start(true), ready: tracks.length > 0 })
+      ) : (
+        <CollectionHero
+          title={title}
+          subtitle={subtitle}
+          tracks={loading && tracks.length === 0 ? null : tracks}
+          cover={cover}
+          icon={icon}
+          gradient={gradient}
+          onPlay={() => start(false)}
+          onShuffle={() => start(true)}
+          countable={countable}
+          display={display}
+        />
+      )}
 
       <div className="track-list">
         {tracks.map((t, i) => (

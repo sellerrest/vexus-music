@@ -12,8 +12,9 @@ import type { Track } from '../types'
 export interface NavValue {
   openTrackRadio: (track: Track) => void
   /** «Похоже на {исполнитель}» — то же радио по треку, но со своим
-   *  заголовком: подборка строится по самому заслушанному треку артиста. */
-  openArtistRadio: (seedTrackId: number, title: string) => void
+   *  заголовком и лицом: подборка строится по самому заслушанному треку
+   *  артиста, его обложка и становится обложкой подборки. */
+  openArtistRadio: (seedTrackId: number, title: string, cover?: string | null) => void
   openCategory: (slug: string, title: string) => void
   openRadio: () => void
   openDiscovery: () => void

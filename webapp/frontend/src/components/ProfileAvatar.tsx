@@ -5,6 +5,11 @@ import { apiUrl } from '../api'
 interface Props {
   src: string | null
   size?: number
+  /** Круг вместо скруглённого квадрата — для маленькой кнопки в шапке. */
+  round?: boolean
+  /** Бегущее пунктирное кольцо. В шапке оно ни к чему: там аватарка мелкая
+   *  и стоит рядом с текстом, а кольцо перетягивает на себя всё внимание. */
+  ring?: boolean
 }
 
 /**
@@ -14,19 +19,23 @@ interface Props {
  * штриха с пробелом равна сдвигу, поэтому кольцо крутится без видимого
  * стыка. Маска-градиент гасит края штрихов, чтобы они не обрывались резко.
  */
-function ProfileAvatar({ src, size = 80 }: Props) {
+function ProfileAvatar({ src, size = 80, round = false, ring: showRing = true }: Props) {
   const [failed, setFailed] = useState(false)
-  const ring = size + 30
-  // Скругление в долях от размера, а не фиксированное: при жёстких 28px
-  // маленькая аватарка выглядела бы заметно круглее большой.
-  const radius = Math.round(size * 0.31)
+  // Зазор под кольцо — в долях от размера. Раньше он был жёстко 15px, и
+  // маленькая аватарка тонула в венце шириной с неё саму.
+  const pad = showRing ? Math.round(size * 0.19) : 0
+  const ring = size + pad * 2
+  // Скругление тоже в долях: при жёстких 28px маленькая аватарка выглядела
+  // бы заметно круглее большой.
+  const radius = round ? size / 2 : Math.round(size * 0.31)
 
   return (
     <div className="pfp" style={{ width: size, height: size }}>
+      {showRing && (
       <svg
         className="pfp-ring"
         viewBox="0 0 120 120"
-        style={{ width: ring, height: ring, left: -15, top: -15 }}
+        style={{ width: ring, height: ring, left: -pad, top: -pad }}
       >
         <defs>
           <linearGradient id="pfp-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -48,7 +57,7 @@ function ProfileAvatar({ src, size = 80 }: Props) {
           y="10"
           width="100"
           height="100"
-          rx="32"
+          rx={round ? 50 : 32}
           fill="none"
           stroke="url(#pfp-grad)"
           strokeWidth="4.5"
@@ -58,6 +67,7 @@ function ProfileAvatar({ src, size = 80 }: Props) {
           className="pfp-dash"
         />
       </svg>
+      )}
 
       {src && !failed ? (
         <img

@@ -1,7 +1,7 @@
-import { Compass, Library, User } from 'lucide-react'
+import { Compass, Library, Radio } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-export type TabKey = 'browse' | 'library' | 'profile'
+export type TabKey = 'browse' | 'library' | 'flow'
 
 interface Props {
   active: TabKey
@@ -11,7 +11,7 @@ interface Props {
 const TABS: { key: TabKey; label: string; icon: LucideIcon }[] = [
   { key: 'browse', label: 'Обзор', icon: Compass },
   { key: 'library', label: 'Медиатека', icon: Library },
-  { key: 'profile', label: 'Профиль', icon: User },
+  { key: 'flow', label: 'Поток', icon: Radio },
 ]
 
 function BottomNav({ active, onChange }: Props) {

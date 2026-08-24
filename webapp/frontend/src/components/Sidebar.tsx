@@ -1,11 +1,11 @@
-import { Home, Search, User } from 'lucide-react'
+import { Home, Radio, Search } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 interface Props {
   /** Что подсвечено сверху: поиск, обзор или профиль. */
-  active: 'browse' | 'search' | 'profile'
+  active: 'browse' | 'search' | 'flow'
   onOpenBrowse: () => void
-  onOpenProfile: () => void
+  onOpenFlow: () => void
   onToggleSearch: () => void
   /**
    * Что ищем прямо сейчас.
@@ -22,16 +22,26 @@ interface Props {
 /**
  * Боковая панель для широких экранов.
  *
- * Сверху три кнопки строками (иконка + подпись), ниже — медиатека, которая
- * на компьютере видна всегда, а не прячется во вкладку. Сама строка поиска
+ * Сверху кнопки строками (иконка + подпись), ниже — медиатека, которая
+ * на компьютере видна всегда, а не прячется во вкладку.
+ *
+ * Профиля здесь нет: настройки открываются нажатием на аватарку рядом с
+ * приветствием. Две двери в одну комнату — лишняя дверь. Сама строка поиска
  * живёт НЕ здесь, а в Dashboard: она должна тянуться до правого края экрана,
  * то есть выходить за пределы панели.
  */
-function Sidebar({ active, onOpenBrowse, onOpenProfile, onToggleSearch, searchLabel, children }: Props) {
+function Sidebar({
+  active,
+  onOpenBrowse,
+  onOpenFlow,
+  onToggleSearch,
+  searchLabel,
+  children,
+}: Props) {
   const items = [
     { key: 'search', label: searchLabel, icon: Search, onClick: onToggleSearch },
     { key: 'browse', label: 'Обзор', icon: Home, onClick: onOpenBrowse },
-    { key: 'profile', label: 'Профиль', icon: User, onClick: onOpenProfile },
+    { key: 'flow', label: 'Поток', icon: Radio, onClick: onOpenFlow },
   ] as const
 
   return (

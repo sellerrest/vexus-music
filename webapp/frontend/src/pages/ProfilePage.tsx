@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { APP_VERSION } from '../version'
+import { checkForUpdate, startUpdate } from '../updates'
+import type { UpdateInfo } from '../updates'
 import { loadToken, noteSessionEnd, saveToken, storageKind } from '../session'
-import axios from 'axios'
 import {
-  ChevronRight, Heart, Headphones, KeyRound, LogOut,
+  ChevronRight, Heart, Headphones, KeyRound, LogOut, RefreshCw,
   MessageCircleMore, MessageSquareText, Smartphone, Trash2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import type { Account } from './Dashboard'
 import ProfileAvatar from '../components/ProfileAvatar'
 import { insideTelegram } from '../hooks/useTelegramBack'
 import { useAddToHomeScreen } from '../hooks/useAddToHomeScreen'
@@ -14,7 +16,9 @@ import { showToast } from '../toast'
 import { typo } from '../typography'
 
 interface Props {
-  token: string
+  /** Данные о человеке приходят снаружи: их же показывает кнопка в шапке
+   *  «Обзора», и запрашивать одно и то же дважды незачем. */
+  me: Account | null
   onOpenPlaylist: (id: number | 'favorites') => void
   onOpenAccount: () => void
   onLogout: () => void
@@ -44,28 +48,31 @@ type Row = {
   confirm?: string
 }
 
-function ProfilePage({ token, onOpenPlaylist, onOpenAccount, onLogout }: Props) {
-  // Данные берём с сервера, а не из window.Telegram: при входе из браузера
-  // этого объекта нет вовсе, и шапка оставалась пустой. Сервер помнит их с
-  // последнего захода из мессенджера.
-  const [me, setMe] = useState<{
-    name: string
-    username: string | null
-    avatar_url: string | null
-    email: string | null
-  } | null>(null)
-
+function ProfilePage({ me, onOpenPlaylist, onOpenAccount, onLogout }: Props) {
   // Какая строка сейчас переспрашивает. Одна на весь список: подтверждение
   // на одной кнопке должно сбрасываться, если нажали другую.
   const [confirming, setConfirming] = useState<string | null>(null)
-  const homeScreen = useAddToHomeScreen()
+  /*
+   * Проверка обновлений по нажатию.
+   *
+   * Две ступени намеренно: сначала «проверить», и только если что-то нашлось —
+   * «обновить». Скачивать полсотни мегабайт от одного нажатия на строку,
+   * которая обещала лишь проверку, было бы нечестно.
+   */
+  const [update, setUpdate] = useState<{ busy: boolean; found: UpdateInfo | null }>({
+    busy: false,
+    found: null,
+  })
 
-  useEffect(() => {
-    axios
-      .get('/api/account', { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setMe(res.data))
-      .catch(() => {})
-  }, [token])
+  const runUpdateCheck = async () => {
+    if (update.busy) return
+    if (update.found) return startUpdate(update.found)
+    setUpdate({ busy: true, found: null })
+    const found = await checkForUpdate()
+    setUpdate({ busy: false, found })
+    showToast(found ? `Вышла версия ${found.version}` : 'Установлена последняя версия')
+  }
+  const homeScreen = useAddToHomeScreen()
 
   /**
    * Чистит кэш браузера: сохранённые ответы и локальные данные приложения.
@@ -137,6 +144,17 @@ function ProfilePage({ token, onOpenPlaylist, onOpenAccount, onLogout }: Props) 
   }
   other.push(
     {
+      label: update.busy
+        ? 'Проверяю…'
+        : update.found
+          ? `Обновить до ${update.found.version}`
+          : 'Проверить обновления',
+      hint: `установлена ${APP_VERSION}`,
+      icon: RefreshCw,
+      color: 'accent',
+      onClick: runUpdateCheck,
+    },
+    {
       label: 'Очистить кэш',
       hint: 'сохранённые данные в браузере',
       icon: Trash2,
@@ -164,7 +182,7 @@ function ProfilePage({ token, onOpenPlaylist, onOpenAccount, onLogout }: Props) 
   return (
     <div className="page profile-page">
       <div className="profile-top">
-        <ProfileAvatar src={me?.avatar_url ?? null} />
+        <ProfileAvatar src={me?.avatar_url ?? null} size={64} round ring={false} />
         <div className="profile-name">{me?.name || 'Пользователь'}</div>
         {me?.username && <div className="profile-username">@{me.username}</div>}
       </div>

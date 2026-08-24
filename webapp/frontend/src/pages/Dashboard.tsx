@@ -15,6 +15,11 @@ import { NavContext } from '../context/NavContext'
 import BackButton from '../components/BackButton'
 import SearchResults from '../components/SearchResults'
 import Sidebar from '../components/Sidebar'
+import SettingsDrawer from '../components/SettingsDrawer'
+import FlowBanner from '../components/FlowBanner'
+import UpdateBanner from '../components/UpdateBanner'
+import { checkForUpdate, dismiss, isDismissed, shouldCheckNow } from '../updates'
+import type { UpdateInfo } from '../updates'
 import { insideTelegram, useTelegramBack } from '../hooks/useTelegramBack'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import AccountPage from './AccountPage'
@@ -27,6 +32,13 @@ import ProfilePage from './ProfilePage'
 import PlaylistDetailPage from './PlaylistDetailPage'
 import type { TabKey } from '../components/BottomNav'
 import type { Track } from '../types'
+
+export interface Account {
+  name: string
+  username: string | null
+  avatar_url: string | null
+  email: string | null
+}
 
 interface Props {
   token: string
@@ -50,7 +62,7 @@ type OpenView =
   /* Чужой плейлист, открытый по ссылке: его можно послушать и забрать себе. */
   | { kind: 'shared'; slug: string }
   | { kind: 'discovery' }
-  | { kind: 'trackRadio'; trackId: number; title: string; heading?: string }
+  | { kind: 'trackRadio'; trackId: number; title: string; heading?: string; cover?: string | null }
   | { kind: 'category'; slug: string; title: string }
   | { kind: 'account' }
 
@@ -63,9 +75,39 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
   const [openByTab, setOpenByTab] = useState<Record<TabKey, OpenView | null>>({
     browse: null,
     library: null,
-    profile: null,
+    flow: null,
   })
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false)
+  /*
+   * Панель настроек и данные о человеке.
+   *
+   * Учётку запрашиваем здесь, а не внутри профиля: аватарка нужна ещё и
+   * кнопке в шапке «Обзора», и два независимых запроса за одним и тем же
+   * означали бы две разные аватарки в момент загрузки.
+   */
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  /*
+   * Обновление, о котором стоит сказать.
+   *
+   * Проверяем при запуске, но не чаще раза в сутки — см. updates.ts. Плашка
+   * появляется только если эту версию ещё не откладывали.
+   */
+  const [update, setUpdate] = useState<UpdateInfo | null>(null)
+  const [me, setMe] = useState<Account | null>(null)
+
+  useEffect(() => {
+    axios
+      .get('/api/account', { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => setMe(res.data))
+      .catch(() => {})
+  }, [token])
+
+  useEffect(() => {
+    if (!shouldCheckNow()) return
+    checkForUpdate().then((found) => {
+      if (found && !isDismissed(found.version)) setUpdate(found)
+    })
+  }, [])
   const isDesktop = useIsDesktop()
   // Поиск на компьютере живёт в боковой панели, поэтому его состояние —
   // здесь, а не внутри страницы «Обзор» (там своё, для телефона).
@@ -120,12 +162,12 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
       openRadio: () => open({ kind: 'radio' }),
       openDiscovery: () => open({ kind: 'discovery' }),
       openTrackRadio: (track: Track) =>
-        open({ kind: 'trackRadio', trackId: track.id, title: track.title }),
+        open({ kind: 'trackRadio', trackId: track.id, title: track.title, cover: track.cover_url }),
       // «Похоже на {исполнитель}» — та же подборка по треку, но заголовок
       // называет артиста, а не трек-затравку: для человека это подборка про
       // исполнителя, и про затравку он ничего не знает.
-      openArtistRadio: (seedTrackId: number, title: string) =>
-        open({ kind: 'trackRadio', trackId: seedTrackId, title: '', heading: title }),
+      openArtistRadio: (seedTrackId: number, title: string, cover?: string | null) =>
+        open({ kind: 'trackRadio', trackId: seedTrackId, title: '', heading: title, cover }),
       openCategory: (slug: string, title: string) => open({ kind: 'category', slug, title }),
     }),
     [open],
@@ -184,6 +226,45 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
   // открытых подборок в браузере было бы не выйти вообще.
   const [showOwnBack] = useState(() => !insideTelegram())
 
+  /*
+   * «Поток» — бесконечная лента под вкус, отдельной вкладкой.
+   *
+   * Раньше она пряталась карточкой «Радио» в строке «Для тебя» на «Обзоре»:
+   * до неё надо было доскроллить и догадаться нажать. Теперь это вкладка,
+   * а карточки на «Обзоре» больше нет — иначе одно и то же открывалось бы
+   * двумя разными путями.
+   */
+  const flowPage = (
+    <FeedPage
+      token={token}
+      title="Поток"
+      subtitle="Бесконечная лента под твой вкус"
+      icon={<Radio size={56} strokeWidth={1.5} />}
+      gradient="radio"
+      loadPage={loadRadio}
+      countable={false}
+      display
+      // Широкая шапка — только на компьютере: на телефоне такая лента заняла
+      // бы весь экран, и до самой музыки пришлось бы доскроллить.
+      banner={isDesktop ? (props) => <FlowBanner {...props} /> : undefined}
+    />
+  )
+
+  const settingsContent = (
+    <ProfilePage
+      me={me}
+      onOpenPlaylist={(id) => {
+        setSettingsOpen(false)
+        openPlaylist(id)
+      }}
+      onOpenAccount={() => {
+        setSettingsOpen(false)
+        open({ kind: 'account' })
+      }}
+      onLogout={onLogout}
+    />
+  )
+
   const renderOpen = (view: OpenView) => {
     switch (view.kind) {
       case 'playlist':
@@ -225,6 +306,7 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
             token={token}
             title={view.heading || 'Похожее'}
             subtitle={view.heading ? undefined : view.title}
+            cover={view.cover}
             icon={<Sparkles size={56} strokeWidth={1.5} />}
             gradient="similar"
             loadPage={async (offset) => {
@@ -285,32 +367,33 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
     }
     const opened = openByTab[tab]
     if (opened !== null) return renderOpen(opened)
-    if (tab === 'profile') {
-      return (
-        <ProfilePage
-          token={token}
-          onOpenPlaylist={openPlaylist}
-          onOpenAccount={() => open({ kind: 'account' })}
-          onLogout={onLogout}
-        />
-      )
-    }
-    return <BrowsePage token={token} onOpenPlaylist={openPlaylist} />
+    if (tab === 'flow') return flowPage
+    return (
+      <BrowsePage
+        token={token}
+        avatarUrl={me?.avatar_url ?? null}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
+    )
   }
 
   const body = isDesktop ? (
     <div className="desktop-shell">
       <Sidebar
-        active={searchOpen ? 'search' : tab === 'profile' ? 'profile' : 'browse'}
+        active={
+          searchOpen ? 'search' : tab === 'flow' ? 'flow' : 'browse'
+        }
         onOpenBrowse={() => {
           setSearchOpen(false)
           setQuery('')
           setTab('browse')
           setOpenByTab((prev) => ({ ...prev, browse: null }))
         }}
-        onOpenProfile={() => {
+        onOpenFlow={() => {
           setSearchOpen(false)
-          setTab('profile')
+          setQuery('')
+          setTab('flow')
+          setOpenByTab((prev) => ({ ...prev, flow: null }))
         }}
         onToggleSearch={() => setSearchOpen((was) => !was)}
         searchLabel={searchLabel}
@@ -371,7 +454,14 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
     </div>
   ) : (
     <>
-      {renderTab('browse', <BrowsePage token={token} onOpenPlaylist={openPlaylist} />)}
+      {renderTab(
+        'browse',
+        <BrowsePage
+          token={token}
+          avatarUrl={me?.avatar_url ?? null}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />,
+      )}
       {renderTab(
         'library',
         <LibraryPage
@@ -380,15 +470,7 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
           onOpenRadio={() => open({ kind: 'broadcast' })}
         />,
       )}
-      {renderTab(
-        'profile',
-        <ProfilePage
-          token={token}
-          onOpenPlaylist={openPlaylist}
-          onOpenAccount={() => open({ kind: 'account' })}
-          onLogout={onLogout}
-        />,
-      )}
+      {renderTab('flow', flowPage)}
       <BottomNav active={tab} onChange={setTab} />
     </>
   )
@@ -409,6 +491,24 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
           {showOwnBack && !isDesktop && !nowPlayingOpen && openByTab[tab] !== null && (
             <BackButton onClick={handleBack} />
           )}
+          <AnimatePresence>
+            {update && (
+              <UpdateBanner
+                info={update}
+                onClose={() => {
+                  dismiss(update.version)
+                  setUpdate(null)
+                }}
+              />
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {settingsOpen && (
+              <SettingsDrawer onClose={() => setSettingsOpen(false)}>{settingsContent}</SettingsDrawer>
+            )}
+          </AnimatePresence>
+
           <MiniPlayer onOpen={() => setNowPlayingOpen(true)} />
           <ToastHost />
 
