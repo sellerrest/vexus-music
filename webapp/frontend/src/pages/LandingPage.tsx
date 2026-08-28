@@ -343,6 +343,9 @@ function LandingPage() {
             ))}
           </div>
           <p className="lp-get-note">
+            Все сборки и исходный код —{' '}
+            <a href="https://github.com/sellerrest/vexus-music">на GitHub</a>.
+            <br />
             Сборки не подписаны сертификатом, поэтому Windows покажет предупреждение
             SmartScreen, а Android — про установку из неизвестного источника. Так система
             встречает любое приложение не из магазина.

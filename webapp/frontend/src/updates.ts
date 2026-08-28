@@ -31,6 +31,17 @@ export interface UpdateInfo {
   hasBuild: boolean
 }
 
+/**
+ * Умеет ли эта площадка обновляться.
+ *
+ * В браузере — нет, и предлагать там «обновиться» бессмысленно: страница
+ * всегда свежая, её версия меняется сама при следующей выкладке сайта.
+ * Разговор про версии уместен только там, где стоит установленный файл.
+ */
+export function updatesSupported(): boolean {
+  return platform() !== 'web'
+}
+
 /** Платформа, на которой сейчас работает приложение. */
 function platform(): 'android' | 'windows' | 'web' {
   const w = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }
@@ -88,6 +99,7 @@ function write(key: string, value: string): void {
  * тот повод, чтобы показывать человеку сбой.
  */
 export async function checkForUpdate(): Promise<UpdateInfo | null> {
+  if (!updatesSupported()) return null
   let data: { tag_name?: string; assets?: { name: string; browser_download_url: string }[] }
   try {
     const res = await fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json' } })

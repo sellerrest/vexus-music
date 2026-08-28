@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { APP_VERSION } from '../version'
-import { checkForUpdate, startUpdate } from '../updates'
+import { checkForUpdate, startUpdate, updatesSupported } from '../updates'
 import type { UpdateInfo } from '../updates'
 import { loadToken, noteSessionEnd, saveToken, storageKind } from '../session'
 import {
@@ -142,8 +142,9 @@ function ProfilePage({ me, onOpenPlaylist, onOpenAccount, onLogout }: Props) {
       onClick: homeScreen.add,
     })
   }
-  other.push(
-    {
+  // В браузере обновляться нечему: страница и так всегда последняя.
+  if (updatesSupported()) {
+    other.push({
       label: update.busy
         ? 'Проверяю…'
         : update.found
@@ -153,7 +154,10 @@ function ProfilePage({ me, onOpenPlaylist, onOpenAccount, onLogout }: Props) {
       icon: RefreshCw,
       color: 'accent',
       onClick: runUpdateCheck,
-    },
+    })
+  }
+
+  other.push(
     {
       label: 'Очистить кэш',
       hint: 'сохранённые данные в браузере',

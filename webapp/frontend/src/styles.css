@@ -995,6 +995,50 @@ img { display: block; }
     .flow-banner-actions { justify-content: center; }
 }
 
+/* ---------- Дополнения формы входа ---------- */
+
+.login-card { position: relative; }
+/* Со стрелкой «назад» карточке нужен запас сверху — иначе стрелка наезжает
+   на подпись под заголовком. */
+.login-card.has-back { padding-top: 62px; }
+.login-back {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50%;
+    color: var(--muted);
+    background: var(--surface-3);
+    cursor: pointer;
+    transition: color 0.14s, background 0.14s;
+}
+.login-back:hover { color: var(--text); background: var(--surface-4); }
+/* Код набирают глазами по цифрам, поэтому крупно, моноширинно и вразрядку. */
+.login-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.42em;
+    /* Разрядка добавляет пустоту справа от последней цифры — сдвигаем строку
+       обратно, иначе набор выглядит смещённым влево. */
+    text-indent: 0.42em;
+}
+.login-link {
+    margin-top: 12px;
+    border: 0;
+    background: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+}
+.login-link:hover { filter: brightness(1.15); }
+.login-link:disabled { color: var(--faint); cursor: default; filter: none; }
+
 /* ---------- Окно обновления ---------- */
 
 .update-overlay {
@@ -2651,6 +2695,7 @@ img { display: block; }
     padding-bottom: 1px;
 }
 .lp-get-alt:hover { color: var(--ink); border-bottom-color: var(--ink); }
+.lp-get-note a { color: var(--brand); font-weight: 600; }
 .lp-get-note {
     max-width: 680px;
     margin: 26px auto 0;
