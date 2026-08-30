@@ -31,6 +31,10 @@ env -u ELECTRON_RUN_AS_NODE CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-build
 
 echo "==> Android (.apk)"
 cd "$ROOT/apps/mobile"
+# Правка чужого плагина: без неё Android убивает приложение при включении
+# трека — служба уведомления не успевает выйти на передний план. Подробности
+# в самом скрипте.
+node fix-media-plugin.mjs
 rm -rf www && mkdir -p www && cp -r "$FRONT/dist-app/." www/
 npx cap sync android
 cd android
