@@ -90,3 +90,31 @@ export function typo(input: string): string {
 
   return s
 }
+
+/**
+ * Слово в форме, согласованной с числом.
+ *
+ * Русский требует трёх форм там, где английскому хватает двух: «1 трек»,
+ * «2 трека», «5 треков». Без этого интерфейс всё время выдаёт машинное
+ * «1 треков» — мелочь, которая читается как неряшливость.
+ */
+export function plural(n: number, forms: [string, string, string]): string {
+  const ten = Math.abs(n) % 100
+  // 11-14 — исключение: «11 треков», хотя единица на конце.
+  if (ten >= 11 && ten <= 14) return forms[2]
+  switch (Math.abs(n) % 10) {
+    case 1:
+      return forms[0]
+    case 2:
+    case 3:
+    case 4:
+      return forms[1]
+    default:
+      return forms[2]
+  }
+}
+
+/** «1 трек», «7 треков» — вместе с числом. */
+export function tracksWord(n: number): string {
+  return `${n} ${plural(n, ['трек', 'трека', 'треков'])}`
+}

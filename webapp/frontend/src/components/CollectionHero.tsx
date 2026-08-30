@@ -3,7 +3,7 @@ import { Play, Shuffle } from 'lucide-react'
 import CoverMosaic from './CoverMosaic'
 import { apiUrl } from '../api'
 import { tileGradient } from '../gradients'
-import { typo } from '../typography'
+import { tracksWord, typo } from '../typography'
 import type { Track } from '../types'
 
 interface Props {
@@ -83,7 +83,7 @@ function CollectionHero({
           {title ? typo(title) : ' '}
         </h1>
         <div className="playlist-hero-meta">
-          {typo(ready && countable ? `${tracks!.length} треков • ${totalDuration(tracks!)}` : subtitle || '')}
+          {typo(ready && countable ? `${tracksWord(tracks!.length)} • ${totalDuration(tracks!)}` : subtitle || '')}
         </div>
       </div>
 

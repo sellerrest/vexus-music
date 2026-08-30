@@ -18,6 +18,7 @@ const GRADIENTS: Record<string, string> = {
   radio: 'linear-gradient(135deg, #cb336a, #d86494)',
   discovery: 'linear-gradient(135deg, #cc9434, #cf7b40)',
   similar: 'linear-gradient(135deg, #8353d4, #2c9bae)',
+  offline: 'linear-gradient(135deg, #3d4450, #5b6472)',
 
   rap: 'linear-gradient(135deg, #3f3f46, #d65d5d)',
   pop: 'linear-gradient(135deg, #c75ed7, #8353d4)',

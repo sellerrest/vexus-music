@@ -1039,6 +1039,92 @@ img { display: block; }
 .login-link:hover { filter: brightness(1.15); }
 .login-link:disabled { color: var(--faint); cursor: default; filter: none; }
 
+/* Значок обрыва связи — тот же кружок, что у обновления, но приглушённый:
+   это не радостная новость, и светиться ей незачем. */
+.update-glow.offline-glow {
+    color: var(--text);
+    background: var(--surface-3);
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.04);
+}
+
+/* ---------- Несуществующий адрес ---------- */
+
+.nf-shell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 24px;
+}
+.nf-card {
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+}
+.nf-glyph {
+    display: grid;
+    place-items: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 26px;
+    color: var(--accent);
+    background: var(--surface-2);
+    box-shadow: 0 0 0 1px var(--border), 0 0 44px rgba(65, 188, 207, 0.16);
+}
+/* Число крупно и полупрозрачно: оно объясняет, что случилось, но говорить об
+   этом громче самой фразы ему незачем. */
+.nf-code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    color: var(--faint);
+    margin-top: 4px;
+}
+.nf-card h1 {
+    font-size: 25px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+}
+.nf-card p {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 34ch;
+}
+.nf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+.nf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 46px;
+    padding: 0 22px;
+    border-radius: 999px;
+    font-size: 14.5px;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--text);
+    background: var(--surface-3);
+    transition: background 0.15s, filter 0.15s, transform 0.15s;
+}
+.nf-btn:hover { background: var(--surface-4); }
+.nf-btn:active { transform: scale(0.98); }
+.nf-btn-main { color: var(--bg); background: var(--accent); }
+.nf-btn-main:hover { background: var(--accent); filter: brightness(1.08); }
+
 /* ---------- Окно обновления ---------- */
 
 .update-overlay {

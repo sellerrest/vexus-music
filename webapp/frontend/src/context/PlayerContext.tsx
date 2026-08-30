@@ -1,4 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { keepTrack, localSource } from '../offline'
+import { apiUrl } from '../api'
 import type { ReactNode } from 'react'
 import axios from 'axios'
 import { showToast } from '../toast'
@@ -122,8 +124,14 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
 
       if (track.url) {
         setIsPreparing(false)
-        audio.src = track.url
+        // Сохранённая копия старше сети: она играет и без интернета, и быстрее.
+        const local = await localSource(track.url)
+        // Пока искали копию, человек мог переключиться на другой трек —
+        // тогда этот запрос устарел и трогать <audio> ему нельзя.
+        if (generation !== prepareGeneration.current) return
+        audio.src = local ?? track.url
         audio.play().catch(() => {})
+        if (!local) void keepTrack(track)
         return
       }
 
@@ -176,6 +184,8 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
         setIsPreparing(false)
         audio.src = url
         audio.play().catch(() => {})
+        // Трек только что скачан — сохраняем его и для офлайна.
+        void keepTrack({ ...track, url })
       } catch {
         // Сеть отвалилась или сервер ответил ошибкой — сообщаем только если
         // человек всё ещё ждёт именно этот трек, а не переключился давно.
@@ -329,7 +339,7 @@ function PlayerProvider({ token, children }: { token: string; children: ReactNod
       // Ссылка обязательно полная: обложку грузит система, и относительный
       // путь ей не от чего отсчитывать.
       artwork: currentTrack.cover_url
-        ? new URL(currentTrack.cover_url, window.location.origin).href
+        ? (apiUrl(currentTrack.cover_url) ?? currentTrack.cover_url)
         : undefined,
     })
   }, [currentTrack])

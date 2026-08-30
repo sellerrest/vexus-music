@@ -18,6 +18,9 @@ import Sidebar from '../components/Sidebar'
 import SettingsDrawer from '../components/SettingsDrawer'
 import FlowBanner from '../components/FlowBanner'
 import UpdateBanner from '../components/UpdateBanner'
+import OfflineSheet from '../components/OfflineSheet'
+import OfflinePage from './OfflinePage'
+import { offlineTracks } from '../offline'
 import { checkForUpdate, dismiss, isDismissed, shouldCheckNow } from '../updates'
 import type { UpdateInfo } from '../updates'
 import { insideTelegram, useTelegramBack } from '../hooks/useTelegramBack'
@@ -93,14 +96,52 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
    * появляется только если эту версию ещё не откладывали.
    */
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
+  /*
+   * Связь с сервером.
+   *
+   * «Ждём» — пока идёт первая проверка; «есть» — сервер ответил; «спросить» —
+   * не ответил за отведённое время, предлагаем офлайн; «офлайн» — человек
+   * согласился.
+   */
+  const [link, setLink] = useState<'ждём' | 'есть' | 'спросить' | 'офлайн'>('ждём')
+  const [offlineCount, setOfflineCount] = useState(0)
+  const [checking, setChecking] = useState(false)
   const [me, setMe] = useState<Account | null>(null)
 
-  useEffect(() => {
-    axios
-      .get('/api/account', { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setMe(res.data))
-      .catch(() => {})
+  /**
+   * Проверяет, отвечает ли сервер.
+   *
+   * Пять секунд — не «пока не надоест»: за это время обычный запрос успевает
+   * дважды, а человек с пропавшей связью уже понимает, что что-то не так.
+   * Заодно забираем данные аккаунта, чтобы не слать второй запрос ради того
+   * же самого.
+   */
+  const checkLink = useCallback(async () => {
+    setChecking(true)
+    try {
+      const res = await axios.get('/api/account', {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 5000,
+      })
+      setMe(res.data)
+      setLink('есть')
+    } catch (err: any) {
+      // Отказ сервера — это не обрыв связи: он ответил, просто отказал.
+      // Офлайн предлагаем только когда ответа не было вовсе.
+      if (err?.response) {
+        setLink('есть')
+      } else {
+        setOfflineCount((await offlineTracks()).length)
+        setLink('спросить')
+      }
+    } finally {
+      setChecking(false)
+    }
   }, [token])
+
+  useEffect(() => {
+    void checkLink()
+  }, [checkLink])
 
   useEffect(() => {
     if (!shouldCheckNow()) return
@@ -375,7 +416,11 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
     )
   }
 
-  const body = isDesktop ? (
+  // В офлайне показываем только сохранённое: остальные вкладки без сервера
+  // всё равно пусты, и водить по ним человека было бы издевательством.
+  const body = link === 'офлайн' ? (
+    <OfflinePage token={token} />
+  ) : isDesktop ? (
     <div className="desktop-shell">
       <Sidebar
         active={
@@ -489,6 +534,20 @@ function Dashboard({ token, onLogout, sharedSlug, onSharedShown }: Props) {
           {showOwnBack && !isDesktop && !nowPlayingOpen && openByTab[tab] !== null && (
             <BackButton onClick={handleBack} />
           )}
+          <AnimatePresence>
+            {link === 'спросить' && (
+              <OfflineSheet
+                count={offlineCount}
+                busy={checking}
+                onRetry={() => void checkLink()}
+                onOffline={() => setLink('офлайн')}
+                /* Закрыть — значит «понял, оставьте меня»: приложение
+                   остаётся как есть, без повторных напоминаний. */
+                onClose={() => setLink('есть')}
+              />
+            )}
+          </AnimatePresence>
+
           <AnimatePresence>
             {update && (
               <UpdateBanner

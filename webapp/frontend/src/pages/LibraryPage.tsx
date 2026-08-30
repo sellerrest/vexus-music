@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { tracksWord } from '../typography'
 import axios from 'axios'
 import { Globe, Heart, MoreVertical, Plus, Radio } from 'lucide-react'
 import Cover from '../components/Cover'
@@ -121,7 +122,7 @@ function LibraryPage({ token, onOpenPlaylist, onOpenRadio }: Props) {
                     <div className="library-row-title">{p.name}</div>
                     <div className="library-row-sub">
                       {p.is_public && <Globe size={11} className="inline-icon" />}
-                      Плейлист • {p.track_count} треков
+                      Плейлист • {tracksWord(p.track_count)}
                     </div>
                   </div>
                 </button>

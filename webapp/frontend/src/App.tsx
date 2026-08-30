@@ -19,6 +19,7 @@ const PublicPage = lazy(() => import('./pages/PublicPage'))
  * файле и приезжал каждому при первом же заходе.
  */
 const LandingPage = lazy(() => import('./pages/LandingPage'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 import { useViewportReady } from './hooks/useViewportReady'
 import { typo } from './typography'
 import { StaticTitleBar } from './components/DesktopTitleBar'
@@ -90,7 +91,7 @@ function App() {
     // всегда, и проверка «if (route)» была истинна на любом адресе — то есть весь
     // разбор входа ниже не выполнялся никогда, и приложение спрашивало почту
     // с паролем при каждом запуске.
-    if (route.kind === 'public') {
+  if (route.kind === 'public' || route.kind === 'notfound') {
       setLoading(false)
       return
     }
@@ -141,6 +142,14 @@ function App() {
       </div>
     </div>
   )
+
+  if (route.kind === 'notfound') {
+    return (
+      <Suspense fallback={loader}>
+        <NotFoundPage />
+      </Suspense>
+    )
+  }
 
   if (route.kind === 'public') {
     return (

@@ -4,7 +4,7 @@ import { Check, Download, Music, Pause, Play, Smartphone } from 'lucide-react'
 import Cover from '../components/Cover'
 import { formatDuration } from '../types'
 import type { Track } from '../types'
-import { typo } from '../typography'
+import { tracksWord, typo } from '../typography'
 import { playlistDeepLink } from '../deepLink'
 import { isDesktopApp } from '../desktop'
 import { showToast } from '../toast'
@@ -90,7 +90,7 @@ function PublicPage({ slug, token }: Props) {
       <div className="public-hero">
         <Cover src={cover} size={160} radius={10} className="public-cover" />
         <h1 className="public-title">{name}</h1>
-        <p className="public-bio">{typo(`${tracks.length} треков`)}</p>
+        <p className="public-bio">{typo(tracksWord(tracks.length))}</p>
 
         <div className="public-actions">
           {token ? (

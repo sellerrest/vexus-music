@@ -10,14 +10,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FRONT="$ROOT/webapp/frontend"
 API_BASE="${API_BASE:-https://music.vexus.pw}"
+SITE_BASE="${SITE_BASE:-https://music.vexus.pw}"
 
-echo "==> React-приложение для пакетов (сервер: $API_BASE)"
+echo "==> React-приложение для пакетов (сервер: $API_BASE, сайт: $SITE_BASE)"
 cd "$FRONT"
 # --base ./ — пути к файлам относительные: так страница открывается и из
 #   пакета Electron, и из WebView, где корень сайта не наш.
 # VITE_API_BASE — полный адрес сервера: внутри пакета относительный /api
 #   указывал бы сам в себя (см. webapp/frontend/src/api.ts).
-VITE_API_BASE="$API_BASE" npx vite build --base ./ --outDir dist-app
+VITE_API_BASE="$API_BASE" VITE_SITE_BASE="$SITE_BASE" npx vite build --base ./ --outDir dist-app
 
 echo "==> Windows (.exe)"
 cd "$ROOT/apps/desktop"

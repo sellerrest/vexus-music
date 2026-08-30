@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import { tracksWord } from '../typography'
+import { SITE_BASE } from '../api'
 import { motion } from 'framer-motion'
 import axios from 'axios'
 import { Check, Copy, Globe, Image, Lock, Pencil, Trash2 } from 'lucide-react'
@@ -23,7 +25,7 @@ function PlaylistActionsSheet({ token, playlist, onClose, onChanged, onDeleted }
 
   const headers = { Authorization: `Bearer ${token}` }
   const publicLink = playlist.public_slug
-    ? `${window.location.origin}/p/${playlist.public_slug}`
+    ? `${SITE_BASE}/p/${playlist.public_slug}`
     : null
 
   const rename = async () => {
@@ -105,7 +107,7 @@ function PlaylistActionsSheet({ token, playlist, onClose, onChanged, onDeleted }
           <Cover src={playlist.cover_url} size={44} radius={4} />
           <div className="sheet-track-info">
             <div className="sheet-track-title">{playlist.name}</div>
-            <div className="sheet-track-artist">{playlist.track_count} треков</div>
+            <div className="sheet-track-artist">{tracksWord(playlist.track_count)}</div>
           </div>
         </div>
 

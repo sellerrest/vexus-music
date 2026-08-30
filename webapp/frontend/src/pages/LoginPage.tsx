@@ -4,13 +4,14 @@ import axios from 'axios'
 import { ArrowLeft, KeyRound, Loader2, Lock, Mail } from 'lucide-react'
 import { typo } from '../typography'
 import { isPackagedApp } from '../routes'
+import { SITE_BASE } from '../api'
 
 interface Props {
   onLoggedIn: (token: string) => void
 }
 
 /** Где заводят аккаунт: только сайт, потому что письмо с кодом ведёт туда же. */
-const REGISTER_URL = 'https://music.vexus.pw/my?register=1'
+const REGISTER_URL = `${SITE_BASE}/my?register=1`
 
 type Mode = 'login' | 'register' | 'code' | 'reset' | 'reset-code'
 
