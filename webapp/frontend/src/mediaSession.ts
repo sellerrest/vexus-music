@@ -68,10 +68,15 @@ export function setMetadata(meta: TrackMeta | null): void {
     // часть проходит по всем и скачивает КАЖДУЮ, оставляя последнюю. Со
     // списком из двух ссылок на одну и ту же картинку обложка качалась бы
     // дважды при каждой смене трека.
-    void MediaSession.setMetadata({
-      title: meta.title,
-      artist: meta.artist,
-      artwork: artwork.slice(0, 1),
+    //
+    // Нативный плагин качает обложку без таймаута и не ловит ошибки сети:
+    // без интернета это бросало исключение внутри службы и роняло приложение.
+    // Поэтому офлайн обложку не отправляем, а если загрузка всё же упала —
+    // повторяем только с названием и исполнителем.
+    const withArt = navigator.onLine ? artwork.slice(0, 1) : []
+    const plain = { title: meta.title, artist: meta.artist, artwork: [] }
+    MediaSession.setMetadata({ ...plain, artwork: withArt }).catch(() => {
+      if (withArt.length) void MediaSession.setMetadata(plain).catch(() => {})
     })
     return
   }
@@ -87,7 +92,7 @@ export function setMetadata(meta: TrackMeta | null): void {
 export function setPlaybackState(playing: boolean): void {
   const state = playing ? 'playing' : 'paused'
   if (NATIVE_ANDROID) {
-    void MediaSession.setPlaybackState({ playbackState: state })
+    MediaSession.setPlaybackState({ playbackState: state }).catch(() => {})
     return
   }
   if (hasWebSession()) navigator.mediaSession.playbackState = state
@@ -105,7 +110,7 @@ export function setPositionState(position: number, duration: number, rate = 1): 
   const safe = Math.min(Math.max(position, 0), duration)
 
   if (NATIVE_ANDROID) {
-    void MediaSession.setPositionState({ duration, position: safe, playbackRate: rate })
+    MediaSession.setPositionState({ duration, position: safe, playbackRate: rate }).catch(() => {})
     return
   }
   if (!hasWebSession() || !navigator.mediaSession.setPositionState) return
